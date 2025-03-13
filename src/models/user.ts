@@ -1,4 +1,4 @@
-import mongoose, {Schema} from "mongoose";
+import mongoose, { Schema, Types } from 'mongoose';
 const userSchema = new mongoose.Schema({
     username :{
         type: String,
@@ -51,27 +51,30 @@ const userSchema = new mongoose.Schema({
         type: Date,
         require: true
     },
-    updateAt :{
+    updatedAt :{
         type: Date,
         require: true
-    }
+    },
+   
 });
 
 export interface IUser{
-    toObject(): unknown;
-    username: string;
-    email: string;
-    password: string;
-    profilePicture?: string;
-    bio?: string;
-    level: number;
-    totalDistance: number;
-    totalTime: number;
-    activities: mongoose.Types.ObjectId[];
-    achievements: mongoose.Types.ObjectId[];
-    challengesCompleted: mongoose.Types.ObjectId[];
-    createdAt: Date;
-    updatedAt: Date;
+    toObject(): {
+        _id: Types.ObjectId | string; 
+        username: string;
+        email: string;
+        password: string;
+        profilePicture?: string;
+        bio?: string;
+        level: number;
+        totalDistance: number;
+        totalTime: number;
+        activities: mongoose.Types.ObjectId[];
+        achievements: mongoose.Types.ObjectId[];
+        challengesCompleted: mongoose.Types.ObjectId[];
+        createdAt: Date;
+        updatedAt: Date;
+    };
 }
 
 const User = mongoose.model('User', userSchema);

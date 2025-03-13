@@ -1,19 +1,23 @@
-import mongoose from 'mongoose';
-import User from '../models/user';
+import { Types } from 'mongoose';
+import User, { IUser } from '../models/user';
 
+// Helper function to transform user document to IUser
+const transformUser = (user: any): IUser => {
+  const userObject = user.toObject();
+  return {
+    ...userObject,
+    _id: userObject._id.toString(),
+    activities: userObject.activities.map((id: Types.ObjectId) => id.toString()),
+    achievements: userObject.achievements.map((id: Types.ObjectId) => id.toString()),
+    challengesCompleted: userObject.challengesCompleted.map((id: Types.ObjectId) => id.toString())
+  };
+};
 
 export const createUser = async (userData: Partial<IUser>): Promise<IUser> => {
   try {
-    userData.isDeleted = false; // Set default value for new users
+    
     const user = await User.create(userData);
-    const userObject = user.toObject();
-    return {
-      ...userObject,
-      _id: userObject._id.toString(),
-      activities: userObject.activities.map(id => id.toString()),
-      achievements: userObject.achievements.map(id => id.toString()),
-      challengesCompleted: userObject.challengesCompleted.map(id => id.toString())
-    };
+    return transformUser(user);
   } catch (error) {
     throw error;
   }
@@ -21,21 +25,9 @@ export const createUser = async (userData: Partial<IUser>): Promise<IUser> => {
 
 export const getUserById = async (userId: string): Promise<IUser | null> => {
   try {
-    const user = await User.findOne({ _id: userId, isDeleted: false })
-      .populate('activities')
-      .populate('achievements')
-      .populate('challengesCompleted');
-    
-    if (!user) return null;
-
-    const userObject = user.toObject();
-    return {
-      ...userObject,
-      _id: userObject._id.toString(),
-      activities: userObject.activities.map(id => id.toString()),
-      achievements: userObject.achievements.map(id => id.toString()),
-      challengesCompleted: userObject.challengesCompleted.map(id => id.toString())
-    };
+    const user = await User.findOne({ _id: userId})
+      .populate('activities achievements challengesCompleted');
+    return user ? transformUser(user) : null;
   } catch (error) {
     throw error;
   }
@@ -43,29 +35,12 @@ export const getUserById = async (userId: string): Promise<IUser | null> => {
 
 export const updateUser = async (userId: string, updateData: Partial<IUser>): Promise<IUser | null> => {
   try {
-    // If isDeleted is true, we're performing a soft delete
-    if (updateData.isDeleted) {
-      updateData.deletedAt = new Date();
-    }
-
     const user = await User.findOneAndUpdate(
-      { _id: userId, isDeleted: false }, // Only update if not already deleted
+      { _id: userId, isDeleted: false },
       updateData,
       { new: true }
-    ).populate('activities')
-     .populate('achievements')
-     .populate('challengesCompleted');
-
-    if (!user) return null;
-
-    const userObject = user.toObject();
-    return {
-      ...userObject,
-      _id: userObject._id.toString(),
-      activities: userObject.activities.map(id => id.toString()),
-      achievements: userObject.achievements.map(id => id.toString()),
-      challengesCompleted: userObject.challengesCompleted.map(id => id.toString())
-    };
+    ).populate('activities achievements challengesCompleted');
+    return user ? transformUser(user) : null;
   } catch (error) {
     throw error;
   }
@@ -74,20 +49,8 @@ export const updateUser = async (userId: string, updateData: Partial<IUser>): Pr
 export const getAllUsers = async (): Promise<IUser[]> => {
   try {
     const users = await User.find({ isDeleted: false })
-      .populate('activities')
-      .populate('achievements')
-      .populate('challengesCompleted');
-
-    return users.map(user => {
-      const userObject = user.toObject();
-      return {
-        ...userObject,
-        _id: userObject._id.toString(),
-        activities: userObject.activities.map(id => id.toString()),
-        achievements: userObject.achievements.map(id => id.toString()),
-        challengesCompleted: userObject.challengesCompleted.map(id => id.toString())
-      };
-    });
+      .populate('activities achievements challengesCompleted');
+    return users.map(transformUser);
   } catch (error) {
     throw error;
   }
@@ -96,20 +59,8 @@ export const getAllUsers = async (): Promise<IUser[]> => {
 export const getUserByUsername = async (username: string): Promise<IUser | null> => {
   try {
     const user = await User.findOne({ username, isDeleted: false })
-      .populate('activities')
-      .populate('achievements')
-      .populate('challengesCompleted');
-
-    if (!user) return null;
-
-    const userObject = user.toObject();
-    return {
-      ...userObject,
-      _id: userObject._id.toString(),
-      activities: userObject.activities.map(id => id.toString()),
-      achievements: userObject.achievements.map(id => id.toString()),
-      challengesCompleted: userObject.challengesCompleted.map(id => id.toString())
-    };
+      .populate('activities achievements challengesCompleted');
+    return user ? transformUser(user) : null;
   } catch (error) {
     throw error;
   }
