@@ -58,6 +58,7 @@ const userSchema = new mongoose.Schema({
 });
 
 export interface IUser{
+    toObject(): unknown;
     username: string;
     email: string;
     password: string;

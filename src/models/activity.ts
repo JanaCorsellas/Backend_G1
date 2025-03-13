@@ -2,18 +2,7 @@ import {ObjectId,Schema, model, Types}from "mongoose"
 
 export interface IActivity {
     
-/*- user
-- startTime
-- endTime
-- duration
-- distance
-- elevationGain
-- averageSpeed
-- caloriesBurned(?)
-- route (de referencepoint)
-- musicPlaylist
-- type (running, trekking...)
-*/
+
     username: string;
     startTime: Date; 
     endTime: Date;
