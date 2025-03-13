@@ -1,67 +1,60 @@
-import { Types } from 'mongoose';
 import User, { IUser } from '../models/user';
+import mongoose from 'mongoose';
 
-// Helper function to transform user document to IUser
-const transformUser = (user: any): IUser => {
-  const userObject = user.toObject();
-  return {
-    ...userObject,
-    _id: userObject._id.toString(),
-    activities: userObject.activities.map((id: Types.ObjectId) => id.toString()),
-    achievements: userObject.achievements.map((id: Types.ObjectId) => id.toString()),
-    challengesCompleted: userObject.challengesCompleted.map((id: Types.ObjectId) => id.toString())
-  };
+/**
+ * Crear un nuevo usuario
+ */
+export const createUser = async (userData: IUser): Promise<IUser> => {
+  const newUser = new User(userData);
+  return await newUser.save();
 };
 
-export const createUser = async (userData: Partial<IUser>): Promise<IUser> => {
-  try {
-    
-    const user = await User.create(userData);
-    return transformUser(user);
-  } catch (error) {
-    throw error;
-  }
-};
-
+/**
+ * Obtener un usuario por su ID
+ */
 export const getUserById = async (userId: string): Promise<IUser | null> => {
-  try {
-    const user = await User.findOne({ _id: userId})
-      .populate('activities achievements challengesCompleted');
-    return user ? transformUser(user) : null;
-  } catch (error) {
-    throw error;
-  }
+  return await User.findById(userId);
 };
 
-export const updateUser = async (userId: string, updateData: Partial<IUser>): Promise<IUser | null> => {
-  try {
-    const user = await User.findOneAndUpdate(
-      { _id: userId, isDeleted: false },
-      updateData,
-      { new: true }
-    ).populate('activities achievements challengesCompleted');
-    return user ? transformUser(user) : null;
-  } catch (error) {
-    throw error;
-  }
-};
-
-export const getAllUsers = async (): Promise<IUser[]> => {
-  try {
-    const users = await User.find({ isDeleted: false })
-      .populate('activities achievements challengesCompleted');
-    return users.map(transformUser);
-  } catch (error) {
-    throw error;
-  }
-};
-
+/**
+ * Obtener un usuario por su nombre de usuario
+ */
 export const getUserByUsername = async (username: string): Promise<IUser | null> => {
-  try {
-    const user = await User.findOne({ username, isDeleted: false })
-      .populate('activities achievements challengesCompleted');
-    return user ? transformUser(user) : null;
-  } catch (error) {
-    throw error;
-  }
+  return await User.findOne({ username });
+};
+
+/**
+ * Obtener todos los usuarios
+ */
+export const getAllUsers = async (): Promise<IUser[]> => {
+  return await User.find();
+};
+
+/**
+ * Actualizar un usuario
+ */
+export const updateUser = async (userId: string, userData: Partial<IUser>): Promise<IUser | null> => {
+  return await User.findByIdAndUpdate(
+    userId,
+    userData,
+    { new: true }
+  );
+};
+
+/**
+ * Eliminar un usuario
+ */
+export const deleteUser = async (userId: string): Promise<IUser | null> => {
+  return await User.findByIdAndDelete(userId);
+};
+
+/**
+ * Añadir una actividad a un usuario
+ */
+export const addActivityToUser = async (userId: string, activityId: string): Promise<IUser | null> => {
+  return await User.findByIdAndUpdate(
+    userId,
+    { $push: { activities: new mongoose.Types.ObjectId(activityId) } },
+    { new: true }
+  );
 };
