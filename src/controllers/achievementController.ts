@@ -46,15 +46,15 @@ export const getAchievementbyIdController = async(req: Request, res: Response)=>
 
 export const getAllAchievementController = async(req: Request, res: Response)=>{
     try{
-        const achievement = await achievementService.getAllAchievement();
+        const achievements = await achievementService.getAllAchievement();
 
-        if(achievement.length === 0){
+        if(achievements.length === 0){
             res.status(404).json({message: "No se encontraron logros"});
         }
-        console.log("Logros obtenidos: ", achievement);
+        console.log("Logros obtenidos: ", achievements);
         res.status(200).json({ message: "Logros obtenidos exitosamente",
-            total: achievement.length,
-            achievement: achievement
+            total: achievements.length,
+            achievement: achievements
         });
     } catch (error) {
         console.error("Error al obtener los logros:", error);
@@ -69,7 +69,7 @@ export const updateAchievementController = async(req: Request, res: Response)=>{
         if(!updatedAchievement){
             res.status(404).json({message: "No se encontró el logro"});
         }
-        res.status(200).json(updateAchievementController);
+        res.status(200).json(updatedAchievement);
     } catch(error){
         res.status(500).json({message: "Error al actualizar el logro", error});
     }

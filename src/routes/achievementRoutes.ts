@@ -382,7 +382,7 @@ router.put('/:id', achievementController.updateAchievementController);
 
 /**
  * @openapi
- * /api/achievements/{id}:
+ * /api/achievements/delete/{id}:
  *   delete:
  *     summary: Delete an existing achievement
  *     tags: [Achievements]
@@ -428,6 +428,7 @@ router.put('/:id', achievementController.updateAchievementController);
  *                 error:
  *                   type: string
  */
-router.delete('/delete/:challengeId', achievementController.deleteAchievementController);
+router.delete('/delete/:id', achievementController.deleteAchievementController);
 
 export default router;
+
