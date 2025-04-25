@@ -2,14 +2,16 @@ import { Express } from 'express';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJSDoc from 'swagger-jsdoc';
 
-const swaggerOptions = { //Configuració general de Swagger
+// Configuración de Swagger
+const swaggerOptions = {
   definition: {
     openapi: '3.0.0', 
     info: {
-      title: 'API de Strava',
+      title: 'API de Actividades', // Título general de la API
       version: '1.0.0',
-      description: "Informació sobre l'API de l'aplicació Strava",
+      description: 'API para gestionar actividades deportivas', // Descripción de la API
     },
+
     tags: [ //Definim les categories para cada una de les rutes per tenir una estructura més ordenada
       {
         name: 'Users',
@@ -35,20 +37,35 @@ const swaggerOptions = { //Configuració general de Swagger
         name: 'Songs',
         description: 'Rutes relacionades amb les cançons',
       }
+,
+      {
+        name: 'Chat',
+        description: 'Rutes relacionades amb el xat',
+      },
+      {
+        name: 'ActivityHistory',
+        description: 'Rutes relacionades amb l\'historial d\'activitats',
+      },
+      {
+        name: 'Auth',
+        description: 'Rutes relacionades amb l\'autenticació',
+      },
+      
     ],
+
     servers: [
       {
-        url: `http://localhost:3000`,
-        description: 'Servidor local per desenvolupament',
+        url: `http://localhost:3000`, // El servidor donde la API se ejecuta
+        description: 'Servidor local para desarrollo', // Descripción del servidor
       },
     ],
   },
-  apis: ['./src/routes/*.ts'], //La ruta dels fitxers que indiquen les especificacions de l'API
+  apis: ['./src/routes/*.ts'], // Especifica las rutas que Swagger debe leer para la documentación
 };
 
 const swaggerSpec = swaggerJSDoc(swaggerOptions);
 
-//Funció per configurar Swagger en el servidor
+// Función para configurar Swagger en el servidor
 const setupSwagger = (app: Express) => {
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 };
