@@ -1,7 +1,7 @@
 import { Server as HttpServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import User from '../models/user';
-
+import { initializeNotificationSockets } from './notificationSocketConfig';
 // Improved structure to store connected user information
 interface ConnectedUser {
   socketIds: string[];
@@ -157,7 +157,7 @@ export const initializeSocket = (server: HttpServer): void => {
       }
     });
   });
-
+  initializeNotificationSockets();
   console.log('Servidor Socket.IO inicializado');
 };
 
