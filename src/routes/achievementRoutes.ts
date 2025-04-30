@@ -39,12 +39,11 @@ const router = Router();
  *         icon: "https://example.com/icons/marathon.png"
  *         usersUnlocked: "60d5ecb74d2dbb001f645a7c"
  */
-
 /**
  * @openapi
  * /api/achievements:
  *   post:
- *     summary: Creat a new achievement
+ *     summary: Crear un nuevo logro
  *     tags: [Achievements]
  *     requestBody:
  *       required: true
@@ -62,7 +61,7 @@ const router = Router();
  *               title:
  *                 type: string
  *                 description: Título del logro
- *                 example: "Primer Kilometro"
+ *                 example: "Primer Kilómetro"
  *               description:
  *                 type: string
  *                 description: Descripción detallada del logro
@@ -76,9 +75,13 @@ const router = Router();
  *                 description: URL o nombre del icono del logro
  *                 example: "medal_bronze.png"
  *               usersUnlocked:
- *                 type: string
- *                 description: ID del usuario que ha desbloqueado el logro
- *                 example: "507f1f77bcf86cd799439011"
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: IDs de los usuarios que han desbloqueado el logro
+ *                 example: 
+ *                   - "507f1f77bcf86cd799439011"
+ *                   - "67dab4abca02f3aa7a28b6ab"
  *     responses:
  *       201:
  *         description: Logro creado exitosamente
@@ -99,7 +102,7 @@ const router = Router();
  *                       example: "507f1f77bcf86cd799439011"
  *                     title:
  *                       type: string
- *                       example: "Primer Kilometro"
+ *                       example: "Primer Kilómetro"
  *                     description:
  *                       type: string
  *                       example: "Completa tu primer kilómetro corriendo"
@@ -110,8 +113,12 @@ const router = Router();
  *                       type: string
  *                       example: "medal_bronze.png"
  *                     usersUnlocked:
- *                       type: string
- *                       example: "507f1f77bcf86cd799439011"
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example:
+ *                         - "507f1f77bcf86cd799439011"
+ *                         - "67dab4abca02f3aa7a28b6ab"
  *       400:
  *         description: Datos inválidos en la petición
  *         content:
@@ -432,3 +439,30 @@ router.delete('/delete/:id', achievementController.deleteAchievementController);
 
 export default router;
 
+
+
+/*Logros obtenidos:  []
+Error al obtener los logros: Error: Cannot set headers after they are sent to the client
+    at ServerResponse.setHeader (node:_http_outgoing:699:11)
+    at ServerResponse.header (C:\ProyectoEA\Backend_G1\node_modules\express\lib\response.js:794:10)
+    at ServerResponse.send (C:\ProyectoEA\Backend_G1\node_modules\express\lib\response.js:174:12)
+    at ServerResponse.json (C:\ProyectoEA\Backend_G1\node_modules\express\lib\response.js:278:15)
+    at C:\ProyectoEA\Backend_G1\src\controllers\achievementController.ts:55:25
+    at Generator.next (<anonymous>)
+    at fulfilled (C:\ProyectoEA\Backend_G1\src\controllers\achievementController.ts:38:58)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  code: 'ERR_HTTP_HEADERS_SENT'
+}
+Error: Cannot set headers after they are sent to the client
+    at ServerResponse.setHeader (node:_http_outgoing:699:11)
+    at ServerResponse.header (C:\ProyectoEA\Backend_G1\node_modules\express\lib\response.js:794:10)
+    at ServerResponse.send (C:\ProyectoEA\Backend_G1\node_modules\express\lib\response.js:174:12)
+    at ServerResponse.json (C:\ProyectoEA\Backend_G1\node_modules\express\lib\response.js:278:15)
+    at C:\ProyectoEA\Backend_G1\src\controllers\achievementController.ts:61:25
+    at Generator.next (<anonymous>)
+    at fulfilled (C:\ProyectoEA\Backend_G1\src\controllers\achievementController.ts:38:58)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  code: 'ERR_HTTP_HEADERS_SENT'
+}*/
+
+///manejar ese error, para que no ocurra más o no cierre el programa
