@@ -438,31 +438,3 @@ router.put('/:id', achievementController.updateAchievementController);
 router.delete('/delete/:id', achievementController.deleteAchievementController);
 
 export default router;
-
-
-
-/*Logros obtenidos:  []
-Error al obtener los logros: Error: Cannot set headers after they are sent to the client
-    at ServerResponse.setHeader (node:_http_outgoing:699:11)
-    at ServerResponse.header (C:\ProyectoEA\Backend_G1\node_modules\express\lib\response.js:794:10)
-    at ServerResponse.send (C:\ProyectoEA\Backend_G1\node_modules\express\lib\response.js:174:12)
-    at ServerResponse.json (C:\ProyectoEA\Backend_G1\node_modules\express\lib\response.js:278:15)
-    at C:\ProyectoEA\Backend_G1\src\controllers\achievementController.ts:55:25
-    at Generator.next (<anonymous>)
-    at fulfilled (C:\ProyectoEA\Backend_G1\src\controllers\achievementController.ts:38:58)
-    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
-  code: 'ERR_HTTP_HEADERS_SENT'
-}
-Error: Cannot set headers after they are sent to the client
-    at ServerResponse.setHeader (node:_http_outgoing:699:11)
-    at ServerResponse.header (C:\ProyectoEA\Backend_G1\node_modules\express\lib\response.js:794:10)
-    at ServerResponse.send (C:\ProyectoEA\Backend_G1\node_modules\express\lib\response.js:174:12)
-    at ServerResponse.json (C:\ProyectoEA\Backend_G1\node_modules\express\lib\response.js:278:15)
-    at C:\ProyectoEA\Backend_G1\src\controllers\achievementController.ts:61:25
-    at Generator.next (<anonymous>)
-    at fulfilled (C:\ProyectoEA\Backend_G1\src\controllers\achievementController.ts:38:58)
-    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
-  code: 'ERR_HTTP_HEADERS_SENT'
-}*/
-
-///manejar ese error, para que no ocurra más o no cierre el programa
