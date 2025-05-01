@@ -17,10 +17,10 @@ export const achievementSchema = new Schema<IAchievement>({
         type: String, 
         required: true
     },
-    usersUnlocked: { 
-        type: mongoose.Schema.Types.ObjectId, 
-        ref: 'User', 
-        required: true
+ usersUnlocked: { 
+      type: [mongoose.Schema.Types.ObjectId], 
+      ref: 'User', 
+      required: true 
     }
 });
 
@@ -30,7 +30,7 @@ export interface IAchievement {
     description: string; 
     condition: string;
     icon: string;
-    usersUnlocked: mongoose.Types.ObjectId;
+    usersUnlocked: mongoose.Types.ObjectId[];
 }
 
 const AchievementModel = mongoose.model('Achievement',achievementSchema);

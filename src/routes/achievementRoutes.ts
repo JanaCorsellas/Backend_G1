@@ -39,12 +39,11 @@ const router = Router();
  *         icon: "https://example.com/icons/marathon.png"
  *         usersUnlocked: "60d5ecb74d2dbb001f645a7c"
  */
-
 /**
  * @openapi
  * /api/achievements:
  *   post:
- *     summary: Creat a new achievement
+ *     summary: Crear un nuevo logro
  *     tags: [Achievements]
  *     requestBody:
  *       required: true
@@ -62,7 +61,7 @@ const router = Router();
  *               title:
  *                 type: string
  *                 description: Título del logro
- *                 example: "Primer Kilometro"
+ *                 example: "Primer Kilómetro"
  *               description:
  *                 type: string
  *                 description: Descripción detallada del logro
@@ -76,9 +75,13 @@ const router = Router();
  *                 description: URL o nombre del icono del logro
  *                 example: "medal_bronze.png"
  *               usersUnlocked:
- *                 type: string
- *                 description: ID del usuario que ha desbloqueado el logro
- *                 example: "507f1f77bcf86cd799439011"
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: IDs de los usuarios que han desbloqueado el logro
+ *                 example: 
+ *                   - "507f1f77bcf86cd799439011"
+ *                   - "67dab4abca02f3aa7a28b6ab"
  *     responses:
  *       201:
  *         description: Logro creado exitosamente
@@ -99,7 +102,7 @@ const router = Router();
  *                       example: "507f1f77bcf86cd799439011"
  *                     title:
  *                       type: string
- *                       example: "Primer Kilometro"
+ *                       example: "Primer Kilómetro"
  *                     description:
  *                       type: string
  *                       example: "Completa tu primer kilómetro corriendo"
@@ -110,8 +113,12 @@ const router = Router();
  *                       type: string
  *                       example: "medal_bronze.png"
  *                     usersUnlocked:
- *                       type: string
- *                       example: "507f1f77bcf86cd799439011"
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example:
+ *                         - "507f1f77bcf86cd799439011"
+ *                         - "67dab4abca02f3aa7a28b6ab"
  *       400:
  *         description: Datos inválidos en la petición
  *         content:
@@ -382,7 +389,7 @@ router.put('/:id', achievementController.updateAchievementController);
 
 /**
  * @openapi
- * /api/achievements/{id}:
+ * /api/achievements/delete/{id}:
  *   delete:
  *     summary: Delete an existing achievement
  *     tags: [Achievements]
@@ -428,6 +435,6 @@ router.put('/:id', achievementController.updateAchievementController);
  *                 error:
  *                   type: string
  */
-router.delete('/delete/:challengeId', achievementController.deleteAchievementController);
+router.delete('/delete/:id', achievementController.deleteAchievementController);
 
 export default router;

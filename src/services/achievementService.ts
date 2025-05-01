@@ -4,9 +4,11 @@ import AchievementModel, {IAchievement} from '../models/achievement';
 export const createAchievement = async(newAchievement: IAchievement)=> {
     return await AchievementModel.create(newAchievement);
 };
-export const getAchievementbyId = async(achievementId: string)=>{
-    return await AchievementModel.findById(achievementId);
-};
+export const getAchievementbyId = (achievementId: string) => {
+    return AchievementModel.findById(achievementId)
+    .populate("usersUnlocked", "username")
+    .exec();
+};  
 export const getAllAchievement = async()=>{
     return await AchievementModel.find();
 };
