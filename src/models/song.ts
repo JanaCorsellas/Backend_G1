@@ -14,7 +14,7 @@ const songSchema = new mongoose.Schema({
     },
     genre :{
         type: String,
-        require: false
+        require: true
     },
     duration :{
         type: Number,
@@ -34,7 +34,7 @@ export interface ISong{
     title: string;
     artist: string;
     album: string;
-    genre?: string;
+    genre: string;
     duration?: number;
     spotifyLink?: string;
     bpm?: number;
