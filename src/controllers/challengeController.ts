@@ -13,10 +13,12 @@ export const createChallengeController = async(req: Request, res: Response)=>{
     try{
         if(!req.body){
             res.status(400).json({message: "Los datos del challenge son requeridos"});
+            return;
         }
         const { title, description, goalType, goalValue, reward, startDate, endDate } = req.body;
         if (!title || !description || !goalType || !goalValue || !reward || !startDate || !endDate) {
             res.status(400).json({ message: "Faltan campos requeridos" });
+            return;
         }
 
         const newChallenge = await createChallenge(req.body);
@@ -35,6 +37,7 @@ export const getChallengeByIdController = async(req: Request, res: Response)=>{
 
        if(!challengeId){
             res.status(404).json({message: "No se encontró el challenge"});
+            return;
         }
         console.log("Challenge obtenido: ", challengeId);
         res.status(200).json(challengeId);
@@ -49,6 +52,7 @@ export const getAllChallengesController = async(req: Request, res: Response)=>{
 
         if(challenges.length === 0){
             res.status(404).json({message: "No se encontraron challenges"});
+            return;
         }
         console.log("Challenge obtenidos: ", challenges);
         res.status(200).json({ message: "Challenges obtenidos exitosamente",
@@ -88,6 +92,7 @@ export const updateChallengeController = async(req: Request, res: Response)=>{
 
         if(!update){
             res.status(404).json({message: "No se encontró el challenge"});
+            return;
         }
         res.status(200).json(update);
     } catch(error){
