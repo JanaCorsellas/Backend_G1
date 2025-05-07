@@ -300,7 +300,7 @@ router.get('/:id', achievementController.getAchievementbyIdHandler);
  *                 error:
  *                   type: string
  */
-router.get('/', achievementController.getAchievementsHandler);
+router.get('/', achievementController.getAchievementsController);
 
 /**
  * @openapi
