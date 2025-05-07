@@ -1,4 +1,4 @@
-# Backoffice projecte EA (Grup 1)
+# Servidor projecte EA (Grup 1)
 
 ## Organització de les carpetes
 Tenim una carpeta src que serà la que es compilarà. Dins d'aquesta carpeta tenim 6 carpetes. 
