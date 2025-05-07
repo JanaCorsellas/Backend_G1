@@ -15,18 +15,31 @@ export const createSongHandler = async (req: Request, res: Response): Promise <a
     }
 };
 
-export const getAllSongsHandler = async (req: Request, res: Response) => {
-    try{
-        const songs = await songService.getAllSongs();
-        if(!songs){
-            res.status(401).json({message: 'No songs found'});
-            return;
-        }
-        res.status(201).json(songs);
-    }catch(err:any){
-        res.status(500).json({message:"Server error: " ,err});
-
+/**
+ * Obtenir totes le cançons
+ */
+export const getSongs = async (req: Request, res: Response): Promise<void> => {
+  try {
+    // Obtenir pàgina i límit dels paràmetres de consulta
+    const page = parseInt(req.query.page?.toString() || '1', 10);
+    const limit = parseInt(req.query.limit?.toString() || '10', 10);
+    
+    console.log(`Sol·licitud de cançons: pàgina ${page}, límit ${limit}`);
+    
+    // Validar paràmetres de paginació
+    if (page < 1 || limit < 1 || limit > 100) {
+      res.status(400).json({ message: 'Paràmetres de paginació invàlids' });
+      return;
     }
+    
+    // Obtenir usuaris paginats
+    const result = await songService.getSongs(page, limit);
+    
+    res.status(200).json(result);
+  } catch (error) {
+    console.error('Error al obtenir cançons:', error);
+    res.status(500).json({ message: 'Error al obtenir cançons' });
+  }
 };
 
 export const getSongByIdHandler = async (req: Request, res: Response) => {

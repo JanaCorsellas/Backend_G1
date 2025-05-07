@@ -93,15 +93,28 @@ router.post('/', songController.createSongHandler);
  *   get:
  *     summary: Get all songs
  *     tags: [Songs]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of songs per page
  *     responses:
  *       201:
- *         description: Canciones encontradas
+ *         description: Cançons trobades
  *       401:
- *        description: No se encontraron canciones
+ *        description: No s'han trobat cançons
  *       500:
  *        description: Error del servidor
  */
-router.get('/', songController.getAllSongsHandler);
+router.get('/', songController.getSongs);
 
 /**
  * @openapi
