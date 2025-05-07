@@ -158,7 +158,7 @@ router.post('/login', userController.loginUser);
  * @openapi
  * /api/users:
  *   get:
- *     summary: Get users with pagination
+ *     summary: Get users
  *     tags: [Users]
  *     parameters:
  *       - in: query
@@ -181,7 +181,7 @@ router.post('/login', userController.loginUser);
  *       500:
  *         description: Error fetching users
  */
-router.get('/', userController.getAllUsers);
+router.get('/', userController.getUsers);
 
 /**
  * @openapi

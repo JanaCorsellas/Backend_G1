@@ -6,7 +6,7 @@ import * as userService from '../services/userService';
 import mongoose from 'mongoose';
 
 /**
- * Crear un nuevo usuario
+ * Crear un nou usuari
  */
 export const createUser = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -73,7 +73,7 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
 };
 
 /**
- * Iniciar sesión
+ * Iniciar sessió
  */
 export const loginUser = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -120,37 +120,37 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
 };
 
 /**
- * Obtener usuarios con paginación
+ * Obtenir tots els usuaris
  */
-export const getAllUsers = async (req: Request, res: Response): Promise<void> => {
+export const getUsers = async (req: Request, res: Response): Promise<void> => {
   try {
-    // Obtener página y límite de los parámetros de consulta
+    // Obtenir pàgina i límit dels paràmetres de consulta
     const page = parseInt(req.query.page?.toString() || '1', 10);
     const limit = parseInt(req.query.limit?.toString() || '10', 10);
     
-    // Procesar el parámetro includeInvisible
+    // Processar el paràmetre includeInvisible
     const includeInvisible = req.query.includeInvisible === 'true';
     
-    console.log(`Solicitud de usuarios: página ${page}, límite ${limit}, incluir invisibles: ${includeInvisible}`);
+    console.log(`Sol·licitud d'usuaris: pàgina ${page}, límit ${limit}, incloure invisibles: ${includeInvisible}`);
     
-    // Validar parámetros de paginación
+    // Validar paràmetres de paginació
     if (page < 1 || limit < 1 || limit > 100) {
-      res.status(400).json({ message: 'Parámetros de paginación inválidos' });
+      res.status(400).json({ message: 'Paràmetres de paginació invàlids' });
       return;
     }
     
-    // Obtener usuarios paginados
-    const result = await userService.getPaginatedUsers(page, limit);
+    // Obtenir usuaris paginats
+    const result = await userService.getUsers(page, limit);
     
     res.status(200).json(result);
   } catch (error) {
-    console.error('Error al obtener usuarios:', error);
-    res.status(500).json({ message: 'Error al obtener usuarios' });
+    console.error('Error al obtenir usuaris:', error);
+    res.status(500).json({ message: 'Error al obtenir usuaris' });
   }
 };
 
 /**
- * Obtener un usuario por ID
+ * Obtenir un usuari per ID
  */
 export const getUserById = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -171,7 +171,7 @@ export const getUserById = async (req: Request, res: Response): Promise<void> =>
 };
 
 /**
- * Actualizar un usuario
+ * Actualitzar un usuari
  */
 export const updateUser = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -215,7 +215,7 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
 };
 
 /**
- * Eliminar un usuario (ahora elimina completamente el usuario y sus actividades)
+ * Eliminar un usuari
  */
 export const deleteUser = async (req: Request, res: Response): Promise<void> => {
   try{
@@ -231,13 +231,13 @@ export const deleteUser = async (req: Request, res: Response): Promise<void> => 
           }
           await userService.deleteUser(req.params.id);
           res.status(201).json(user);
-      }catch(err:any){
+      } catch(err:any){
           res.status(500).json({message:"Server error: ", err});
       }
 };
 
 /**
- * Alternar visibilidad de un usuario
+ * Alternar visibilitat d'un usuari
  */
 export const toggleUserVisibility = async (req: Request, res: Response): Promise<void> => {
   try {

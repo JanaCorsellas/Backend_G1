@@ -1,13 +1,57 @@
 import SongModel, {ISong} from '../models/song';
-
+import mongoose from 'mongoose';
 
 export const createSong = async (song:ISong) => {
     const newSong = new SongModel(song);
     return await newSong.save();
 };
 
-export const getAllSongs = async () => {
-    return await SongModel.find();
+/**
+ * Obtenir totes les cançons
+ */
+export const getSongs = async (page: number, limit: number): Promise<{
+  songs: ISong[];
+  totalSongs: number;
+  totalPages: number;
+  currentPage: number;
+}> => {
+  try {
+    const skip = (page - 1) * limit;
+    
+    const query = {};
+    
+    if (mongoose.connection.readyState !== 1) {
+      throw new Error("La connexió a MongoDB no està disponible");
+    }
+    
+    const db = mongoose.connection.db;
+    if (!db) {
+      throw new Error("La base de de dades no està disponible");
+    }
+    
+    const collection = db.collection('songs');
+    
+    const songs = await collection.find(query)
+      .skip(skip)
+      .limit(limit)
+      .toArray();
+    
+    const totalSongs = await collection.countDocuments(query);
+    
+    const totalPages = Math.ceil(totalSongs / limit);
+    
+    console.log(`Trobats ${songs.length} cançons d'un total de ${totalSongs}`);
+    
+    return {
+      songs: songs as unknown as ISong[],
+      totalSongs,
+      totalPages,
+      currentPage: page
+    };
+  } catch (error) {
+    console.error('Error al obtenir cançons:', error);
+    throw error;
+  }
 };
 
 export const getSongById = async (id:string) => {

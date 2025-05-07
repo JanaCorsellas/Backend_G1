@@ -186,11 +186,28 @@ router.get('/user/:userId', activityController.getActivitiesByUserIdController);
  *   get:
  *     summary: Get all activities
  *     tags: [Activities]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of activities per page
  *     responses:
  *       200:
- *         description: List of all activities
+ *         description: Activitats trobades
+ *       401:
+ *        description: No s'han trobat activitats
+ *       500:
+ *        description: Error del servidor
  */
-router.get('/', activityController.getAllActivitiesController);
+router.get('/', activityController.getActivitiesHandler);
 
 /**
  * @openapi

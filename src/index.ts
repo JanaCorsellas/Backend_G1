@@ -6,7 +6,7 @@ import connectDatabase from './config/db';
 import achievementRoutes from './routes/achievementRoutes';
 import challengeRoutes from './routes/challengeRoutes';
 import songRoutes from './routes/songRoutes';
-import { corsHandler } from './middleware/corsHandler';
+import cors from 'cors';
 import dotenv from 'dotenv';
 import setupSwagger from './config/swaggerConfig';
 import activityHistoryRoutes from './routes/activityHistoryRoutes';
@@ -22,7 +22,7 @@ setupSwagger(app);
 
 //Middleware
 app.use(express.json());
-app.use(corsHandler);
+app.use(cors());
 
 //Rutes
 app.use('/api/users', userRoutes);

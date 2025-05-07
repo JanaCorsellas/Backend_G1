@@ -39,12 +39,11 @@ const router = Router();
  *         icon: "https://example.com/icons/marathon.png"
  *         usersUnlocked: "60d5ecb74d2dbb001f645a7c"
  */
-
 /**
  * @openapi
  * /api/achievements:
  *   post:
- *     summary: Creat a new achievement
+ *     summary: Crear un nuevo logro
  *     tags: [Achievements]
  *     requestBody:
  *       required: true
@@ -62,7 +61,7 @@ const router = Router();
  *               title:
  *                 type: string
  *                 description: Título del logro
- *                 example: "Primer Kilometro"
+ *                 example: "Primer Kilómetro"
  *               description:
  *                 type: string
  *                 description: Descripción detallada del logro
@@ -76,9 +75,13 @@ const router = Router();
  *                 description: URL o nombre del icono del logro
  *                 example: "medal_bronze.png"
  *               usersUnlocked:
- *                 type: string
- *                 description: ID del usuario que ha desbloqueado el logro
- *                 example: "507f1f77bcf86cd799439011"
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: IDs de los usuarios que han desbloqueado el logro
+ *                 example: 
+ *                   - "507f1f77bcf86cd799439011"
+ *                   - "67dab4abca02f3aa7a28b6ab"
  *     responses:
  *       201:
  *         description: Logro creado exitosamente
@@ -99,7 +102,7 @@ const router = Router();
  *                       example: "507f1f77bcf86cd799439011"
  *                     title:
  *                       type: string
- *                       example: "Primer Kilometro"
+ *                       example: "Primer Kilómetro"
  *                     description:
  *                       type: string
  *                       example: "Completa tu primer kilómetro corriendo"
@@ -110,8 +113,12 @@ const router = Router();
  *                       type: string
  *                       example: "medal_bronze.png"
  *                     usersUnlocked:
- *                       type: string
- *                       example: "507f1f77bcf86cd799439011"
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example:
+ *                         - "507f1f77bcf86cd799439011"
+ *                         - "67dab4abca02f3aa7a28b6ab"
  *       400:
  *         description: Datos inválidos en la petición
  *         content:
@@ -135,7 +142,7 @@ const router = Router();
  *                 error:
  *                   type: string
  */
-router.post('/', achievementController.createAchievementController);
+router.post('/', achievementController.createAchievementHandler);
 
 /**
  * @openapi
@@ -205,7 +212,7 @@ router.post('/', achievementController.createAchievementController);
  *                 error:
  *                   type: string
  */
-router.get('/:id', achievementController.getAchievementbyIdController);
+router.get('/:id', achievementController.getAchievementbyIdHandler);
 
 /**
  * @openapi
@@ -213,6 +220,19 @@ router.get('/:id', achievementController.getAchievementbyIdController);
  *   get:
  *     summary: Get all achievements
  *     tags: [Achievements]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of achievements per page
  *     responses:
  *       200:
  *         description: Lista de logros obtenida exitosamente
@@ -258,7 +278,7 @@ router.get('/:id', achievementController.getAchievementbyIdController);
  *                         description: ID del usuario que ha desbloqueado el logro
  *                         example: "507f1f77bcf86cd799439011"
  *       404:
- *         description: No se encontraron logros
+ *         description: No s'han trobat assoliments
  *         content:
  *           application/json:
  *             schema:
@@ -266,9 +286,9 @@ router.get('/:id', achievementController.getAchievementbyIdController);
  *               properties:
  *                 message:
  *                   type: string
- *                   example: "No se encontraron logros disponibles"
+ *                   example: "No s'han trobat assoliments disponibles"
  *       500:
- *         description: Error interno del servidor
+ *         description: Error intern del servidor
  *         content:
  *           application/json:
  *             schema:
@@ -276,11 +296,11 @@ router.get('/:id', achievementController.getAchievementbyIdController);
  *               properties:
  *                 message:
  *                   type: string
- *                   example: "Error al obtener los logros"
+ *                   example: "Error al obtenir els assoliments"
  *                 error:
  *                   type: string
  */
-router.get('/', achievementController.getAllAchievementController);
+router.get('/', achievementController.getAchievementsHandler);
 
 /**
  * @openapi
@@ -378,11 +398,11 @@ router.get('/', achievementController.getAllAchievementController);
  *                 error:
  *                   type: string
  */
-router.put('/:id', achievementController.updateAchievementController);
+router.put('/:id', achievementController.updateAchievementHandler);
 
 /**
  * @openapi
- * /api/achievements/{id}:
+ * /api/achievements/delete/{id}:
  *   delete:
  *     summary: Delete an existing achievement
  *     tags: [Achievements]
@@ -428,6 +448,6 @@ router.put('/:id', achievementController.updateAchievementController);
  *                 error:
  *                   type: string
  */
-router.delete('/delete/:challengeId', achievementController.deleteAchievementController);
+router.delete('/delete/:id', achievementController.deleteAchievementHandler);
 
 export default router;
