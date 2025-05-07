@@ -45,7 +45,7 @@ export const getUsers = async (page: number, limit: number): Promise<{
       currentPage: page
     };
   } catch (error) {
-    console.error('Error al obtenir usuarios:', error);
+    console.error('Error al obtenir usuaris:', error);
     throw error;
   }
 };

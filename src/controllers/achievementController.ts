@@ -50,7 +50,7 @@ export const getAchievementbyIdHandler = async(req: Request, res: Response)=>{
 /**
  * Obtenir tots els assoliments
  */
-export const getAchievementsHandler = async (req: Request, res: Response): Promise<void> => {
+export const getAchievementsController = async (req: Request, res: Response): Promise<void> => {
   try {
     // Obtenir pàgina i límit dels paràmetres de consulta
     const page = parseInt(req.query.page?.toString() || '1', 10);
