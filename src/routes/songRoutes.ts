@@ -107,14 +107,14 @@ router.post('/', songController.createSongHandler);
  *           default: 10
  *         description: Number of songs per page
  *     responses:
- *       201:
+ *       200:
  *         description: Cançons trobades
  *       401:
  *        description: No s'han trobat cançons
  *       500:
  *        description: Error del servidor
  */
-router.get('/', songController.getSongs);
+router.get('/', songController.getSongsHandler);
 
 /**
  * @openapi
@@ -229,7 +229,7 @@ router.get('/genre/:genre', songController.getSongsByGenreHandler);
  *       500:
  *         description: Error del servidor
  */
-router.get('/bpm/:bpm', songController.getSymilarBpmHandler);
+router.get('/bpm/:bpm', songController.getSimilarBPMHandler);
 
 /**
  * @openapi

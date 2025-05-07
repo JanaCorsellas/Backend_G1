@@ -40,7 +40,7 @@ export const getActivitiesByUserIdController = async (req: Request, res: Respons
 };
 
 // Obtenir totes les activitats
-export const getAllActivitiesController = async (req: Request, res: Response) => {
+export const getActivitiesHandler = async (req: Request, res: Response) => {
     try {
         const data = await getAllActivities();
         res.json(data);

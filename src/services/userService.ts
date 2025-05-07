@@ -4,7 +4,7 @@ import mongoose from 'mongoose';
 /**
  * Obtenir tots els usuaris
  */
-export const getUsers = async (page: number = 1, limit: number = 10): Promise<{
+export const getUsers = async (page: number, limit: number): Promise<{
   users: IUser[];
   totalUsers: number;
   totalPages: number;
