@@ -16,9 +16,9 @@ export const createSongHandler = async (req: Request, res: Response): Promise <a
 };
 
 /**
- * Obtenir totes le cançons
+ * Obtenir totes les cançons
  */
-export const getSongs = async (req: Request, res: Response): Promise<void> => {
+export const getSongsHandler = async (req: Request, res: Response): Promise<void> => {
   try {
     // Obtenir pàgina i límit dels paràmetres de consulta
     const page = parseInt(req.query.page?.toString() || '1', 10);
@@ -32,7 +32,7 @@ export const getSongs = async (req: Request, res: Response): Promise<void> => {
       return;
     }
     
-    // Obtenir usuaris paginats
+    // Obtenir cançons paginades
     const result = await songService.getSongs(page, limit);
     
     res.status(200).json(result);
@@ -94,7 +94,7 @@ export const getSongsByGenreHandler = async (req: Request, res: Response) => {
     }
 };
 
-export const getSymilarBpmHandler = async (req: Request, res: Response) => {
+export const getSimilarBPMHandler = async (req: Request, res: Response) => {
     try{
         const songs = await songService.getSymilarBpm(Number(req.params.bpm));
         if(!songs){

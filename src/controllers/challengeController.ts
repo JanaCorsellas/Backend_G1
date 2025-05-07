@@ -1,12 +1,4 @@
-import {
-    createChallenge,
-    getChallengeById,
-    getAllChallenges,
-    updateChallenge,
-    deleteChallenge,
-    getActiveChallenges,
-    getInactiveChallenges
-} from "../services/challengeService";
+import * as challengeService from "../services/challengeService";
 import { Request,Response } from "express";
 
 export const createChallengeController = async(req: Request, res: Response)=>{
@@ -21,7 +13,7 @@ export const createChallengeController = async(req: Request, res: Response)=>{
             return;
         }
 
-        const newChallenge = await createChallenge(req.body);
+        const newChallenge = await challengeService.createChallenge(req.body);
         console.log("Challenge creado:", newChallenge);
 
         res.status(201).json({message: "Challenge creado exitosamente"});
@@ -33,7 +25,7 @@ export const createChallengeController = async(req: Request, res: Response)=>{
 
 export const getChallengeByIdController = async(req: Request, res: Response)=>{
     try{
-        const challengeId = await getChallengeById(req.params.id);
+        const challengeId = await challengeService.getChallengeById(req.params.id);
 
        if(!challengeId){
             res.status(404).json({message: "No se encontró el challenge"});
@@ -46,28 +38,36 @@ export const getChallengeByIdController = async(req: Request, res: Response)=>{
     }    
 };
 
-export const getAllChallengesController = async(req: Request, res: Response)=>{
-    try{
-        const challenges = await getAllChallenges();
-
-        if(challenges.length === 0){
-            res.status(404).json({message: "No se encontraron challenges"});
-            return;
-        }
-        console.log("Challenge obtenidos: ", challenges);
-        res.status(200).json({ message: "Challenges obtenidos exitosamente",
-            total: challenges.length,
-            challenges: challenges
-        });
-    } catch (error) {
-        console.error("Error al obtener challenges:", error);
-        res.status(500).json({message: "Error al obtener los challenges", error});
+/**
+ * Obtenir tots els reptes
+ */
+export const getChallengesController = async (req: Request, res: Response): Promise<void> => {
+  try {
+    // Obtenir pàgina i límit dels paràmetres de consulta
+    const page = parseInt(req.query.page?.toString() || '1', 10);
+    const limit = parseInt(req.query.limit?.toString() || '10', 10);
+    
+    console.log(`Sol·licitud de reptes: pàgina ${page}, límit ${limit}`);
+    
+    // Validar paràmetres de paginació
+    if (page < 1 || limit < 1 || limit > 100) {
+      res.status(400).json({ message: 'Paràmetres de paginació invàlids' });
+      return;
     }
+    
+    // Obtenir reptes paginats
+    const result = await challengeService.getChallenges(page, limit);
+    
+    res.status(200).json(result);
+  } catch (error) {
+    console.error('Error al obtenir reptes:', error);
+    res.status(500).json({ message: 'Error al obtenir reptes' });
+  }
 };
 
 export const getActiveChallengesController = async(req: Request, res: Response)=>{
     try{
-        const activeChallenges = await getActiveChallenges();
+        const activeChallenges = await challengeService.getActiveChallenges();
         console.log("Challenge activos: ", activeChallenges);
         res.status(200).json({message: "Challenges activos obtenidos con éxito",challenges: activeChallenges});
     } catch(error){
@@ -78,7 +78,7 @@ export const getActiveChallengesController = async(req: Request, res: Response)=
 
 export const getInactiveChallengesController = async(req: Request, res: Response)=>{
     try{
-        const inactiveChallenges = await getInactiveChallenges();
+        const inactiveChallenges = await challengeService.getInactiveChallenges();
         console.log("Challenge inactivos: ", inactiveChallenges);
     } catch(error){
         res.status(500).json({message: "Error al obtener los challenges inactivos", error});
@@ -88,7 +88,7 @@ export const getInactiveChallengesController = async(req: Request, res: Response
 
 export const updateChallengeController = async(req: Request, res: Response)=>{
     try{
-        const update = await updateChallenge(req.params.id, req.body);
+        const update = await challengeService.updateChallenge(req.params.id, req.body);
 
         if(!update){
             res.status(404).json({message: "No se encontró el challenge"});
@@ -102,7 +102,7 @@ export const updateChallengeController = async(req: Request, res: Response)=>{
 
 export const deleteChallengeController = async(req: Request, res: Response)=>{
     try{
-        await deleteChallenge(req.params.id);
+        await challengeService.deleteChallenge(req.params.id);
         res.status(200).json({message: "Challenge eliminado exitosamente"});
     } catch(error){
         res.status(500).json({message: "Error al eliminar el challenge", error});

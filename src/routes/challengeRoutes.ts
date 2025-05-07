@@ -210,15 +210,21 @@ router.get('/:id', challengeController.getChallengeByIdController);
  *     summary: Get all challenges
  *     tags: [Challenges]
  *     parameters:
- *       - in: path
- *         name: id
+ *       - in: query
+ *         name: page
  *         schema:
- *           type: string
- *         required: true
- *         description: ID del challenge a buscar
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of challenges per page
  *     responses:
  *       200:
- *         description: Challenge encontrado exitosamente
+ *         description: Reptes trobats amb èxits
  *         content:
  *           application/json:
  *             schema:
@@ -226,32 +232,34 @@ router.get('/:id', challengeController.getChallengeByIdController);
  *               properties:
  *                 _id:
  *                   type: string
- *                   description: ID único del challenge
+ *                   description: ID únic del repte
  *                 title:
  *                   type: string
- *                   description: Título del challenge
+ *                   description: Títol del repte
  *                 description:
  *                   type: string
- *                   description: Descripción del challenge
+ *                   description: Descripció del repte
  *                 goalType:
  *                   type: string
- *                   description: Tipo de objetivo
+ *                   description: Tipus d'objectiu
  *                 goalValue:
  *                   type: string
- *                   description: Valor del objetivo
+ *                   description: Valor de l'objectiu
  *                 reward:
  *                   type: number
- *                   description: Recompensa del challenge
+ *                   description: Recompensa del repte
  *                 startDate:
  *                   type: string
  *                   format: date
- *                   description: Fecha de inicio
+ *                   description: Data d'inicio
  *                 endDate:
  *                   type: string
  *                   format: date
- *                   description: Fecha de finalización
+ *                   description: Data de finalización
+ *       401:
+ *        description: No s'han trobat reptes
  *       500:
- *         description: Error interno del servidor
+ *         description: Error intern del servidor
  *         content:
  *           application/json:
  *             schema:
@@ -260,7 +268,7 @@ router.get('/:id', challengeController.getChallengeByIdController);
  *                 message:
  *                   type: Error interno del servidor
  */
-router.get('/', challengeController.getAllChallengesController);
+router.get('/', challengeController.getChallengesController);
 
 /**
  * @openapi

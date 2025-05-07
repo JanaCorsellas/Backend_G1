@@ -9,7 +9,7 @@ export const createSong = async (song:ISong) => {
 /**
  * Obtenir totes les cançons
  */
-export const getSongs = async (page: number = 1, limit: number = 10): Promise<{
+export const getSongs = async (page: number, limit: number): Promise<{
   songs: ISong[];
   totalSongs: number;
   totalPages: number;

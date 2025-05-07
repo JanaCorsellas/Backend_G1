@@ -2,7 +2,7 @@ import { Request,Response } from "express";
 import * as achievementService from '../services/achievementService';
 import { IAchievement } from "../models/achievement";
 
-export const createAchievementController = async(req: Request, res: Response)=>{
+export const createAchievementHandler = async(req: Request, res: Response)=>{
     try{
         if(!req.body){
             res.status(400).json({message: "Los datos del logro son requeridos"});
@@ -32,7 +32,7 @@ export const createAchievementController = async(req: Request, res: Response)=>{
     }
 };
 
-export const getAchievementbyIdController = async(req: Request, res: Response)=>{
+export const getAchievementbyIdHandler = async(req: Request, res: Response)=>{
     try{
         const achievementId = await achievementService.getAchievementbyId(req.params.id);
 
@@ -47,26 +47,34 @@ export const getAchievementbyIdController = async(req: Request, res: Response)=>
     }    
 };
 
-export const getAllAchievementController = async(req: Request, res: Response)=>{
-    try{
-        const achievements = await achievementService.getAllAchievement()
-        
-        if(achievements.length === 0){
-            res.status(404).json({message: "No s'han trobat achievements'"});
-            return;
-        }
-        console.log("Achievements obtinguts: ", achievements);
-        res.status(200).json({ message: "Achievements obtinguts amb èxit",
-            total: achievements.length,
-            achievement: achievements
-        });
-    } catch (error) {
-        console.error("Error al obtenir els achievements:", error);
-        res.status(500).json({message: "Error al obtenir els achievements", error});
+/**
+ * Obtenir tots els assoliments
+ */
+export const getAchievementsHandler = async (req: Request, res: Response): Promise<void> => {
+  try {
+    // Obtenir pàgina i límit dels paràmetres de consulta
+    const page = parseInt(req.query.page?.toString() || '1', 10);
+    const limit = parseInt(req.query.limit?.toString() || '10', 10);
+    
+    console.log(`Sol·licitud d'assoliments: pàgina ${page}, límit ${limit}`);
+    
+    // Validar paràmetres de paginació
+    if (page < 1 || limit < 1 || limit > 100) {
+      res.status(400).json({ message: 'Paràmetres de paginació invàlids' });
+      return;
     }
+    
+    // Obtenir assoliments paginats
+    const result = await achievementService.getAchievements(page, limit);
+    
+    res.status(200).json(result);
+  } catch (error) {
+    console.error('Error al obtenir assoliments:', error);
+    res.status(500).json({ message: 'Error al obtenir assoliments' });
+  }
 };
 
-export const updateAchievementController = async(req: Request, res: Response)=>{
+export const updateAchievementHandler = async(req: Request, res: Response)=>{
     try{
         const updatedAchievement = await achievementService.updateAchievement(req.params.id, req.body);
 
@@ -79,7 +87,7 @@ export const updateAchievementController = async(req: Request, res: Response)=>{
     }
 };
 
-export const deleteAchievementController = async(req: Request, res: Response)=>{
+export const deleteAchievementHandler = async(req: Request, res: Response)=>{
     try{
         await achievementService.deleteAchievement(req.params.id);
         res.status(200).json({message: "Achievement eliminat amb èxit"});

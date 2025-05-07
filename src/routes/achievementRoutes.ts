@@ -142,7 +142,7 @@ const router = Router();
  *                 error:
  *                   type: string
  */
-router.post('/', achievementController.createAchievementController);
+router.post('/', achievementController.createAchievementHandler);
 
 /**
  * @openapi
@@ -212,7 +212,7 @@ router.post('/', achievementController.createAchievementController);
  *                 error:
  *                   type: string
  */
-router.get('/:id', achievementController.getAchievementbyIdController);
+router.get('/:id', achievementController.getAchievementbyIdHandler);
 
 /**
  * @openapi
@@ -220,6 +220,19 @@ router.get('/:id', achievementController.getAchievementbyIdController);
  *   get:
  *     summary: Get all achievements
  *     tags: [Achievements]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of achievements per page
  *     responses:
  *       200:
  *         description: Lista de logros obtenida exitosamente
@@ -265,7 +278,7 @@ router.get('/:id', achievementController.getAchievementbyIdController);
  *                         description: ID del usuario que ha desbloqueado el logro
  *                         example: "507f1f77bcf86cd799439011"
  *       404:
- *         description: No se encontraron logros
+ *         description: No s'han trobat assoliments
  *         content:
  *           application/json:
  *             schema:
@@ -273,9 +286,9 @@ router.get('/:id', achievementController.getAchievementbyIdController);
  *               properties:
  *                 message:
  *                   type: string
- *                   example: "No se encontraron logros disponibles"
+ *                   example: "No s'han trobat assoliments disponibles"
  *       500:
- *         description: Error interno del servidor
+ *         description: Error intern del servidor
  *         content:
  *           application/json:
  *             schema:
@@ -283,11 +296,11 @@ router.get('/:id', achievementController.getAchievementbyIdController);
  *               properties:
  *                 message:
  *                   type: string
- *                   example: "Error al obtener los logros"
+ *                   example: "Error al obtenir els assoliments"
  *                 error:
  *                   type: string
  */
-router.get('/', achievementController.getAllAchievementController);
+router.get('/', achievementController.getAchievementsHandler);
 
 /**
  * @openapi
@@ -385,7 +398,7 @@ router.get('/', achievementController.getAllAchievementController);
  *                 error:
  *                   type: string
  */
-router.put('/:id', achievementController.updateAchievementController);
+router.put('/:id', achievementController.updateAchievementHandler);
 
 /**
  * @openapi
@@ -435,6 +448,6 @@ router.put('/:id', achievementController.updateAchievementController);
  *                 error:
  *                   type: string
  */
-router.delete('/delete/:id', achievementController.deleteAchievementController);
+router.delete('/delete/:id', achievementController.deleteAchievementHandler);
 
 export default router;
