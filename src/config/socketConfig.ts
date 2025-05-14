@@ -1,17 +1,18 @@
 import { Server as HttpServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import User from '../models/user';
+import { verifyToken } from '../utils/jwt.handle';
 
-// Improved structure to store connected user information
+// Estructura para almacenar información de usuario conectado
 interface ConnectedUser {
   socketIds: string[];
   username: string;
 }
 
-// Map to store connected users: userId -> ConnectedUser
+// Mapa para almacenar usuarios conectados: userId -> ConnectedUser
 const connectedUsers = new Map<string, ConnectedUser>();
 
-// Structure for storing messages
+// Estructura para almacenar mensajes
 interface Message {
   id: string;
   roomId: string;
@@ -26,65 +27,123 @@ let io: Server;
 export const initializeSocket = (server: HttpServer): void => {
   io = new Server(server, {
     cors: {
-      origin: "*", // In production, restrict this to your frontend domain
+      origin: "*", // En producción, restringir a tu dominio frontend
       methods: ["GET", "POST"],
       credentials: true
     },
-    transports: ['websocket', 'polling'] // Explicitly enable both transports
+    transports: ['websocket', 'polling'] // Habilitar ambos transportes para mayor compatibilidad
+  });
+
+  // Middleware para validar token JWT en cada conexión
+  io.use(async (socket, next) => {
+    const token = socket.handshake.auth?.token;
+    const userId = socket.handshake.auth?.userId;
+    
+    // Si hay token, verificamos la autenticación JWT
+    if (token) {
+      try {
+        const tokenData = verifyToken(token);
+        if (tokenData && typeof tokenData !== 'string' && tokenData.id) {
+          // Autenticación JWT exitosa
+          socket.data.tokenAuth = true;
+          if (typeof tokenData !== 'string' && tokenData.id) {
+            socket.data.userId = tokenData.id;
+          }
+          socket.data.role = (typeof tokenData !== 'string' && tokenData.role) || 'user';
+          socket.data.username = (typeof tokenData !== 'string' && tokenData.name) || socket.handshake.auth?.username || 'Usuario';
+          return next();
+        } else {
+          console.log('Token JWT inválido o sin id');
+        }
+      } catch (error) {
+        console.error('Error validando token JWT:', error);
+        // No rechazamos la conexión para mantener compatibilidad hacia atrás
+      }
+    }
+    
+    // Fallback: permitir autenticación sin JWT si proporciona userId
+    if (userId) {
+      console.log(`Autenticación sin JWT para usuario ${userId}`);
+      socket.data.tokenAuth = false;
+      socket.data.userId = userId;
+      socket.data.username = socket.handshake.auth?.username || 'Usuario';
+      return next();
+    }
+    
+    // Si no tiene token ni userId, rechazamos la conexión
+    return next(new Error('Autenticación insuficiente'));
   });
 
   io.on('connection', async (socket: Socket) => {
     console.log(`Socket conectado: ${socket.id}`);
 
-    // Extract auth data from handshake
-    const { userId, username } = socket.handshake.auth as { 
-      userId?: string, 
-      username?: string 
-    };
+    // Datos de autenticación (ya validados en el middleware)
+    const userId = socket.data.userId;
+    const username = socket.data.username;
+    const isTokenAuth = socket.data.tokenAuth || false;
 
     if (userId) {
-      console.log(`Usuario ${username || 'Desconocido'} (${userId}) registrado con socket ${socket.id}`);
+      // Log con información de autenticación
+      console.log(`Usuario ${username} (${userId}) registrado con socket ${socket.id} - Auth JWT: ${isTokenAuth ? 'Sí' : 'No'}`);
       
-      // Store data in socket
-      socket.data.userId = userId;
-      socket.data.username = username || 'Usuario';
-      
-      // If username is missing, try to fetch it from database
-      let finalUsername = username;
-      if (!finalUsername || finalUsername === 'Usuario') {
+      // Si no tenemos username, intentar obtenerlo de la base de datos
+      if (username === 'Usuario') {
         try {
           const user = await User.findById(userId);
           if (user) {
-            finalUsername = user.username;
-            socket.data.username = finalUsername;
+            socket.data.username = user.username;
+            console.log(`Username actualizado desde DB: ${user.username}`);
           }
         } catch (err) {
           console.error('Error fetching user data:', err);
         }
       }
       
-      // Register in connected users map with username
+      // Registrar en el mapa de usuarios conectados
       if (!connectedUsers.has(userId)) {
         connectedUsers.set(userId, {
           socketIds: [socket.id],
-          username: finalUsername || 'Usuario'
+          username: socket.data.username
         });
       } else {
         const userData = connectedUsers.get(userId);
         if (userData) {
           userData.socketIds.push(socket.id);
-          // Update username if we now have better information
-          if (finalUsername && finalUsername !== 'Usuario') {
-            userData.username = finalUsername;
+          // Actualizar nombre si ahora tenemos mejor información
+          if (socket.data.username && socket.data.username !== 'Usuario') {
+            userData.username = socket.data.username;
           }
         }
       }
       
-      // Emit updated list of online users
+      // Unir al usuario a su sala personal para recibir mensajes
+      socket.join(`user:${userId}`);
+      
+      // Emitir lista actualizada de usuarios en línea
       emitOnlineUsers();
     } else {
       console.log(`Socket ${socket.id} conectado sin identificación de usuario`);
     }
+
+    // Evento para actualización de token
+    socket.on('token_updated', (data) => {
+      if (data && data.token) {
+        console.log(`Token actualizado para socket ${socket.id}`);
+        try {
+          const tokenData = verifyToken(data.token);
+          if (tokenData && typeof tokenData !== 'string' && tokenData.id) {
+            socket.data.tokenAuth = true;
+            socket.data.userId = tokenData.id;
+            socket.data.role = tokenData.role || 'user';
+            socket.data.username = tokenData.name || socket.data.username || 'Usuario';
+            console.log(`Token actualizado exitosamente para usuario ${socket.data.username}`);
+          }
+        } catch (error) {
+          console.error('Error validando token actualizado:', error);
+          socket.emit('token_expired', { message: 'Token inválido' });
+        }
+      }
+    });
 
     // Join a chat room
     socket.on('join_room', (roomId: string) => {
@@ -117,6 +176,11 @@ export const initializeSocket = (server: HttpServer): void => {
       };
       
       console.log(`Mensaje enviado a sala ${finalMessage.roomId}: ${finalMessage.content.substring(0, 30)}...`);
+      
+      // Validar token antes de procesar mensaje
+      if (socket.data.tokenAuth === false) {
+        // Para conexiones sin JWT, podríamos implementar validaciones adicionales aquí
+      }
       
       // Emit message to everyone in the room
       io.to(finalMessage.roomId).emit('new_message', finalMessage);

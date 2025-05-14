@@ -24,7 +24,7 @@ export const checkJwt = async (
         const isUser = verifyToken(`${jwt}`);
         
         if (!isUser) {
-            const refreshToken = req.cookies?.refreshToken;
+            const refreshToken = req.cookies?.refreshToken || req.body.refreshToken;
             
             if (!refreshToken) {
                 res.status(401).send("TOKEN_EXPIRED_NO_REFRESH");
