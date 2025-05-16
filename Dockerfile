@@ -4,7 +4,7 @@ WORKDIR /home/app
 
 COPY package*.json ./
 
-RUN npm install
+RUN npm ci
 
 COPY . .
 
@@ -20,8 +20,8 @@ COPY --from=build /home/app/src ./src
 
 COPY /src/.env .env
 
-RUN npm install
+RUN npm ci
 
-EXPOSE 3000
+EXPOSE 8080
 
 CMD ["node" , "dist/index.js" ]
