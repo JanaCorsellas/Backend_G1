@@ -36,6 +36,17 @@ services:
       - PUBLIC_API_URL=http://backend:8080
     networks:
       - "frontend_network"
+  webapp:
+    image: polaltes0403/webapp_g1:latest
+    container_name: web_container
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    environment:
+      - PUBLIC_API_URL=http://backend:8080
+    networks:
+      - "frontend_network"
 
 networks:
   frontend_network:
