@@ -1,5 +1,10 @@
 import { Request, Response } from "express";
 import { registerNewUser, loginUser, refreshUserToken, logoutUser, googleAuth } from "../services/auth_service";
+import { OAuth2Client } from 'google-auth-library';
+import axios from "axios";
+import UserModel from "../models/user";
+import { generateRefreshToken, generateToken } from "../utils/jwt.handle";
+
 
 export const registerCtrl = async ({body}: Request, res: Response) => {
     try{
@@ -152,3 +157,55 @@ export const googleAuthCtrl = async(req: Request, res: Response) =>{
     console.log("Redireccionando a:", fullUrl); 
     res.redirect(fullUrl);
 }
+
+export const googleAuthTokenCtrl = async (req: Request, res: Response) => {
+    const { token } = req.body;
+
+    if (!token) {
+        return res.status(400).json({ message: "Falta el token de Google" });
+    }
+
+    try {
+        // 1. Verificar token y obtener información del usuario desde Google
+        const response = await axios.get(`https://oauth2.googleapis.com/tokeninfo?id_token=${token}`);
+
+        const { email, name, sub: googleId, picture } = response.data;
+
+        // 2. Buscar usuario en base de datos
+        let user = await UserModel.findOne({ email });
+
+        // 3. Si no existe, crear nuevo usuario
+        if (!user) {
+            user = await UserModel.create({
+                email,
+                name,
+                googleId,
+                profilePicture: picture,
+                role: "user", // o lo que necesites
+            });
+        }
+
+        // 4. Generar tokens
+        const accessToken = generateToken(user._id.toString(), user.role, user.username);
+        const refreshToken = generateRefreshToken(user._id.toString());
+
+        // 5. Opcional: guarda el refreshToken en la DB si haces invalidación de sesiones
+
+        // 6. Devolver respuesta
+        return res.json({
+            token: accessToken,
+            refreshToken,
+            user: {
+                id: user._id,
+                name: user.username,
+                email: user.email,
+                role: user.role,
+                picture: user.profilePicture,
+            },
+        });
+
+    } catch (error) {
+        console.error("Error al verificar token de Google:", error);
+        return res.status(401).json({ message: "Token de Google inválido" });
+    }
+};

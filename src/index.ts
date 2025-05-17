@@ -34,7 +34,13 @@ setupSwagger(app);
 
 // Middleware
 app.use(express.json());
-app.use(cors());
+
+const corsOptions = {
+  origin: 'http://localhost:5173', // Solo permites tu frontend local
+  credentials: true, // Necesario para cookies o withCredentials en axios
+};
+
+app.use(cors(corsOptions));
 
 // Routes
 app.use('/api/users', userRoutes);
