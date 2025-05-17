@@ -33,7 +33,9 @@ services:
     depends_on:
       - backend
     environment:
-      - BACKOFFICE_URI=http://backend:8080
+      - PUBLIC_API_URL=http://backend:8080
+    networks:
+      - "frontend_network"
 
 networks:
   frontend_network:
