@@ -15,8 +15,8 @@ const normalizeDate = (date: Date | string | undefined): string => {
 };
 
 // Crear una nueva actividad y asociarla a un usuario
-export const createActivity = async (userId: string, activityData: Omit<IActivity, 'user'>): Promise<IActivity> => {
-    const activity = await ActivityModel.create({ ...activityData, user: userId });
+export const createActivity = async (userId: string, activityData: Omit<IActivity, 'author'>): Promise<IActivity> => {
+    const activity = await ActivityModel.create({ ...activityData, author: userId });
 
     // Agregar la actividad al array de actividades del usuario
     await UserModel.findByIdAndUpdate(userId, { $push: { activities: activity._id } });
@@ -39,7 +39,7 @@ export const getActivityById = async (activityId: string): Promise<IActivity | n
 
 // Obtener todas las actividades de un usuario
 export const getActivitiesByUserId = async (userId: string): Promise<IActivity[]> => {
-    return await ActivityModel.find({ user: userId }).populate('route').populate('musicPlaylist');
+    return await ActivityModel.find({ author: userId }).populate('route').populate('musicPlaylist');
 };
 
 // Obtener todas las actividades
