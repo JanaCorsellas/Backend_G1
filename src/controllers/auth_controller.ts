@@ -157,7 +157,6 @@ export const googleAuthCtrl = async(req: Request, res: Response) =>{
     console.log("Redireccionando a:", fullUrl); 
     res.redirect(fullUrl);
 }
-
 export const googleAuthTokenCtrl = async (req: Request, res: Response) => {
     const { token } = req.body;
 
@@ -178,29 +177,39 @@ export const googleAuthTokenCtrl = async (req: Request, res: Response) => {
         if (!user) {
             user = await UserModel.create({
                 email,
-                name,
+                username: name,
                 googleId,
                 profilePicture: picture,
-                role: "user", // o lo que necesites
+                password: Math.random().toString(36).slice(-8), 
+                role: "user",
+                level: 1,
+                totalDistance: 0,
+                totalTime: 0,
+                activities: [],
+                achievements: [],
+                challengesCompleted: [],
             });
         }
 
         // 4. Generar tokens
-        const accessToken = generateToken(user._id.toString(), user.role, user.username);
-        const refreshToken = generateRefreshToken(user._id.toString());
+        const accessToken = generateToken(user.email, user.role, user.username);
+        const refreshToken = generateRefreshToken(user.email);
 
-        // 5. Opcional: guarda el refreshToken en la DB si haces invalidación de sesiones
+        // 5. Save refresh token to user document
+        user.refreshToken = refreshToken;
+        await user.save();
 
-        // 6. Devolver respuesta
+        // 6. Return response
         return res.json({
             token: accessToken,
             refreshToken,
             user: {
-                id: user._id,
-                name: user.username,
+                _id: user._id,
+                username: user.username,
                 email: user.email,
                 role: user.role,
-                picture: user.profilePicture,
+                profilePicture: user.profilePicture,
+                level: user.level
             },
         });
 

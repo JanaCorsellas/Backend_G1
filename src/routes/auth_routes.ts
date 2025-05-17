@@ -118,6 +118,14 @@ router.post("/login", async (req: Request, res: Response) => {
     }
 });
 
+router.post('/google/token', async (req, res) => {
+  try {
+    await googleAuthTokenCtrl(req, res);
+  } catch (err) {
+    res.status(500).json({ message: 'Error interno del servidor' });
+  }
+});
+
 /**
  * @swagger
  * /api/auth/user/{userId}:
@@ -232,15 +240,6 @@ router.get('/google/callback', async (req: Request, res: Response) => {
     } catch (error) {
         res.status(500).json({ message: "Internal server error" });
     }
-});
-
-router.post('/google/token', async (req, res) => {
-  try {
-    await googleAuthTokenCtrl(req, res);
-  } catch (err) {
-    console.error('Error en googleAuthTokenCtrl:', err);
-    res.status(500).json({ message: 'Error interno del servidor' });
-  }
 });
 
 export default router;
