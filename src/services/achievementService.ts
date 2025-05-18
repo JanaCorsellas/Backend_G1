@@ -73,13 +73,24 @@ export const getUserAchievements = async (userId: string): Promise<{
     const unlocked: IAchievement[] = [];
     const locked: IAchievement[] = [];
 
+    // Convertir userId a ObjectId para comparación correcta
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+
     allAchievements.forEach(achievement => {
-        if (achievement.usersUnlocked.some(id => id.toString() === userId)) {
+        // Mejorar la comparación usando ObjectId
+        const isUnlocked = achievement.usersUnlocked.some(id => {
+            // Comparar tanto como string como ObjectId
+            return id.toString() === userId || id.equals(userObjectId);
+        });
+
+        if (isUnlocked) {
             unlocked.push(achievement);
         } else {
             locked.push(achievement);
         }
     });
+
+    console.log(`Usuario ${userId}: ${unlocked.length} desbloqueados, ${locked.length} bloqueados de ${allAchievements.length} totales`);
 
     return {
         unlocked,
