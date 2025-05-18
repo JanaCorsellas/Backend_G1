@@ -1,15 +1,31 @@
 import pkg from "jsonwebtoken";
 const { sign, verify } = pkg;
+
 // Usamos secretos diferentes para cada tipo de token
-const JWT_SECRET = process.env.JWT_SECRET || "token.a7a8c3e5f7b9d2e3a1c8b7e5f7a9c2e4a8c7b5e3f7a9";
-const REFRESH_SECRET = process.env.REFRESH_SECRET || "refresh.c8b7e5f7a9c2e4a8c7b5e3f7a9c2e4a8c7b5e3f7a9"; // Secret diferente
+const JWT_SECRET = process.env.JWT_SECRET;
+const REFRESH_SECRET = process.env.REFRESH_SECRET; // Secret diferente
+
+if (!JWT_SECRET) {
+    throw new Error("JWT_SECRET is not defined in environment variables");
+}
+if (!REFRESH_SECRET) {
+    throw new Error("REFRESH_SECRET is not defined in environment variables");
+}
 
 // Generamos el token de acceso con datos adicionales en el payload
-const generateToken = (id: string, role: string = "user", name: string = "") => {
-    // Añadimos el rol y el nombre al payload
-    const jwt = sign({ id, role, name, type: 'access' }, JWT_SECRET, { expiresIn: '15m' });
-    return jwt;
+const generateToken = (user: any) => {
+  const jwt = sign({
+    id: user._id?.toString() || user.id,
+    role: user.role,
+    name: user.username || user.name,
+    email: user.email,
+    profilePicture: user.profilePicture,
+    type: 'access',
+  }, JWT_SECRET, { expiresIn: '15m' });
+
+  return jwt;
 };
+
 
 // Generamos el refresh token con una duración más larga y un payload diferente
 const generateRefreshToken = (id: string) => {

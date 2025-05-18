@@ -1,5 +1,10 @@
 import { Request, Response } from "express";
 import { registerNewUser, loginUser, refreshUserToken, logoutUser, googleAuth } from "../services/auth_service";
+import { OAuth2Client } from 'google-auth-library';
+import axios from "axios";
+import UserModel from "../models/user";
+import { generateRefreshToken, generateToken } from "../utils/jwt.handle";
+
 
 export const registerCtrl = async ({body}: Request, res: Response) => {
     try{
@@ -41,11 +46,10 @@ export const loginCtrl = async ({ body }: Request, res: Response) => {
             return res.status(404).json({ message: 'Usuario no encontrado' });
         }
 
-        // Enviar el objeto usuario completo en la respuesta
         return res.json({
             token: responseUser.token,
             refreshToken: responseUser.refreshToken,
-            user: responseUser.user // Objeto usuario completo
+            user: responseUser.user 
         });
     } catch (error: any) {
         return res.status(500).json({ message: error.message });
@@ -152,3 +156,64 @@ export const googleAuthCtrl = async(req: Request, res: Response) =>{
     console.log("Redireccionando a:", fullUrl); 
     res.redirect(fullUrl);
 }
+export const googleAuthTokenCtrl = async (req: Request, res: Response) => {
+    const { token } = req.body;
+
+    if (!token) {
+        return res.status(400).json({ message: "Falta el token de Google" });
+    }
+
+    try {
+        // 1. Verificar token y obtener información del usuario desde Google
+        const response = await axios.get(`https://oauth2.googleapis.com/tokeninfo?id_token=${token}`);
+
+        const { email, name, sub: googleId, picture } = response.data;
+
+        // 2. Buscar usuario en base de datos
+        let user = await UserModel.findOne({ email });
+
+        // 3. Si no existe, crear nuevo usuario
+        if (!user) {
+            user = await UserModel.create({
+                email,
+                username: name,
+                googleId,
+                profilePicture: picture,
+                password: Math.random().toString(36).slice(-8), 
+                role: "user",
+                level: 1,
+                totalDistance: 0,
+                totalTime: 0,
+                activities: [],
+                achievements: [],
+                challengesCompleted: [],
+            });
+        }
+
+        // 4. Generar tokens
+        const accessToken = generateToken(user);
+        const refreshToken = generateRefreshToken(user.email);
+
+        // 5. Save refresh token to user document
+        user.refreshToken = refreshToken;
+        await user.save();
+
+        // 6. Return response
+        return res.json({
+            token: accessToken,
+            refreshToken,
+            user: {
+                _id: user._id,
+                username: user.username,
+                email: user.email,
+                role: user.role,
+                profilePicture: user.profilePicture,
+                level: user.level
+            },
+        });
+
+    } catch (error) {
+        console.error("Error al verificar token de Google:", error);
+        return res.status(401).json({ message: "Token de Google inválido" });
+    }
+};

@@ -7,24 +7,18 @@ import axios from 'axios';
 /**
  * Registra un nuevo usuario en el sistema
  */
+const registerNewUser = async (userData: { username: string; email: string; password: string }) => {
+    const existingUser = await User.findOne({ email: userData.email });
+    if (existingUser) return "ALREADY_USER";
 
-const registerNewUser = async (userData: Auth) => {
-
-    // Verificamos si el usuario ya existe
-    const checkIs = await User.findOne({ email: userData.email });
-    if(checkIs) return "ALREADY_USER";
-    
-    // Encriptamos la contraseña
     const passHash = await encrypt(userData.password);
-    
-    // Creamos el nuevo usuario
-    const registerNewUser = await User.create({ 
 
-
-        username: userData.username, // Explicitly use username from userData
+    const newUser = await User.create({
+        username: userData.username,
         email: userData.email,
         password: passHash,
-        role: 'user', // Rol por defecto
+        role: "user",
+        profilePicture: "string",
         level: 1,
         totalDistance: 0,
         totalTime: 0,
@@ -34,8 +28,22 @@ const registerNewUser = async (userData: Auth) => {
         createdAt: new Date(),
         updatedAt: new Date()
     });
+
+    const token = generateToken(newUser);
+    const refreshToken = generateRefreshToken(newUser.email);
     
-    return registerNewUser;
+    // Verificamos que los tokens sean diferentes
+    console.log("Access token generado:", token.substring(0, 20) + '...');
+    console.log("Refresh token generado:", refreshToken.substring(0, 20) + '...');
+    console.log("¿Son diferentes?", token !== refreshToken ? "Sí" : "No");
+    
+    await User.updateOne({ email: newUser.email }, { refreshToken });
+
+    return {
+        token,
+        refreshToken,
+        user: newUser
+    };
 };
 
 /**
@@ -52,7 +60,7 @@ const loginUser = async ({ email, password, username }: Auth) => {
     if(!isCorrect) return "INCORRECT_PASSWORD";
 
     // Generamos un token de acceso con datos enriquecidos
-    const token = generateToken(checkIs.email, checkIs.role, checkIs.username);
+    const token = generateToken(checkIs);
     
     // Generamos un refresh token
     const refreshToken = generateRefreshToken(checkIs.email);
@@ -71,6 +79,7 @@ const loginUser = async ({ email, password, username }: Auth) => {
         refreshToken,
         user: checkIs
     }
+    console.log("Datos del usuario:", data);
     return data;
 };
 
@@ -93,7 +102,7 @@ const refreshUserToken = async (refreshToken: string) => {
     if (user.refreshToken !== refreshToken) return "REFRESH_TOKEN_MISMATCH";
     
     // Generamos un nuevo token de acceso
-    const newToken = generateToken(user.email, user.role, user.username);
+    const newToken = generateToken(user);
     
     // Generamos un nuevo refresh token (rotación de tokens)
     const newRefreshToken = generateRefreshToken(user.email);
@@ -198,7 +207,7 @@ const googleAuth = async (code: string) => {
         }
 
         // Generamos tokens JWT para nuestra aplicación
-        const token = generateToken(user.email, user.role, user.username);
+        const token = generateToken(user);
         const refreshToken = generateRefreshToken(user.email);
         
         // Verificamos que son diferentes
