@@ -79,7 +79,6 @@ const loginUser = async ({ email, password, username }: Auth) => {
         refreshToken,
         user: checkIs
     }
-    console.log("Datos del usuario:", data);
     return data;
 };
 
