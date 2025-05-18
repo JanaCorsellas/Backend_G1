@@ -18,6 +18,7 @@ const registerNewUser = async (userData: { username: string; email: string; pass
         email: userData.email,
         password: passHash,
         role: "user",
+        profilePicture: "string",
         level: 1,
         totalDistance: 0,
         totalTime: 0,
@@ -28,7 +29,7 @@ const registerNewUser = async (userData: { username: string; email: string; pass
         updatedAt: new Date()
     });
 
-    const token = generateToken(newUser.email, newUser.role, newUser.username);
+    const token = generateToken(newUser);
     const refreshToken = generateRefreshToken(newUser.email);
     
     // Verificamos que los tokens sean diferentes
@@ -59,7 +60,7 @@ const loginUser = async ({ email, password, username }: Auth) => {
     if(!isCorrect) return "INCORRECT_PASSWORD";
 
     // Generamos un token de acceso con datos enriquecidos
-    const token = generateToken(checkIs.email, checkIs.role, checkIs.username);
+    const token = generateToken(checkIs);
     
     // Generamos un refresh token
     const refreshToken = generateRefreshToken(checkIs.email);
@@ -78,6 +79,7 @@ const loginUser = async ({ email, password, username }: Auth) => {
         refreshToken,
         user: checkIs
     }
+    console.log("Datos del usuario:", data);
     return data;
 };
 
@@ -100,7 +102,7 @@ const refreshUserToken = async (refreshToken: string) => {
     if (user.refreshToken !== refreshToken) return "REFRESH_TOKEN_MISMATCH";
     
     // Generamos un nuevo token de acceso
-    const newToken = generateToken(user.email, user.role, user.username);
+    const newToken = generateToken(user);
     
     // Generamos un nuevo refresh token (rotación de tokens)
     const newRefreshToken = generateRefreshToken(user.email);
@@ -205,7 +207,7 @@ const googleAuth = async (code: string) => {
         }
 
         // Generamos tokens JWT para nuestra aplicación
-        const token = generateToken(user.email, user.role, user.username);
+        const token = generateToken(user);
         const refreshToken = generateRefreshToken(user.email);
         
         // Verificamos que son diferentes

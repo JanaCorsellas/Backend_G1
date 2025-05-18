@@ -45,7 +45,7 @@ export const checkJwt = async (
                 return;
             }
             
-            const newToken = generateToken(user.email, user.role, user.username);
+            const newToken = generateToken(user);
             req.user = { id: user.email, role: user.role, name: user.username };
             res.setHeader('Authorization', `Bearer ${newToken}`);
             next();

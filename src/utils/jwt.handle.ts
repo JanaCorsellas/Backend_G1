@@ -1,5 +1,6 @@
 import pkg from "jsonwebtoken";
 const { sign, verify } = pkg;
+
 // Usamos secretos diferentes para cada tipo de token
 const JWT_SECRET = process.env.JWT_SECRET;
 const REFRESH_SECRET = process.env.REFRESH_SECRET; // Secret diferente
@@ -12,11 +13,19 @@ if (!REFRESH_SECRET) {
 }
 
 // Generamos el token de acceso con datos adicionales en el payload
-const generateToken = (id: string, role: string = "user", name: string = "") => {
-    // Añadimos el rol y el nombre al payload
-    const jwt = sign({ id, role, name, type: 'access' }, JWT_SECRET, { expiresIn: '15m' });
-    return jwt;
+const generateToken = (user: any) => {
+  const jwt = sign({
+    id: user._id?.toString() || user.id,
+    role: user.role,
+    name: user.username || user.name,
+    email: user.email,
+    profilePicture: user.profilePicture,
+    type: 'access',
+  }, JWT_SECRET, { expiresIn: '15m' });
+
+  return jwt;
 };
+
 
 // Generamos el refresh token con una duración más larga y un payload diferente
 const generateRefreshToken = (id: string) => {

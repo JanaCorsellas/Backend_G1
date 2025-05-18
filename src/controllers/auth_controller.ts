@@ -46,11 +46,10 @@ export const loginCtrl = async ({ body }: Request, res: Response) => {
             return res.status(404).json({ message: 'Usuario no encontrado' });
         }
 
-        // Enviar el objeto usuario completo en la respuesta
         return res.json({
             token: responseUser.token,
             refreshToken: responseUser.refreshToken,
-            user: responseUser.user // Objeto usuario completo
+            user: responseUser.user 
         });
     } catch (error: any) {
         return res.status(500).json({ message: error.message });
@@ -192,7 +191,7 @@ export const googleAuthTokenCtrl = async (req: Request, res: Response) => {
         }
 
         // 4. Generar tokens
-        const accessToken = generateToken(user.email, user.role, user.username);
+        const accessToken = generateToken(user);
         const refreshToken = generateRefreshToken(user.email);
 
         // 5. Save refresh token to user document
