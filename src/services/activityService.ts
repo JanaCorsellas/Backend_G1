@@ -2,6 +2,8 @@ import ActivityModel, { IActivity } from "../models/activity";
 import UserModel from "../models/user";
 import mongoose from "mongoose";
 import * as activityHistoryService from './activityHistoryService';
+import { IActivityHistory } from "../models/activityHistory";
+import * as achievementService from './achievementService';
 
 // Función auxiliar para normalizar las fechas (eliminar la influencia de zona horaria)
 const normalizeDate = (date: Date | string | undefined): string => {
@@ -26,8 +28,22 @@ export const createActivity = async (userId: string, activityData: Omit<IActivit
         activityId: activity._id,
         userId: new mongoose.Types.ObjectId(userId),
         changeType: 'create',
-        newValues: activity.toObject() // Convertir a objeto plano para almacenar
+        newValues: activity.toObject()
     });
+
+    // Verificar y desbloquear nuevos logros
+    try {
+        const { checkAndUnlockAchievements } = await import('./achievementService.js');
+        const newAchievements = await checkAndUnlockAchievements(userId);
+        
+        if (newAchievements.length > 0) {
+            console.log(`Usuario ${userId} desbloqueó ${newAchievements.length} nuevos logros`);
+            // Aquí podrías enviar una notificación al usuario sobre los nuevos logros
+        }
+    } catch (error) {
+        console.error('Error checking achievements:', error);
+        // No fallar la creación de actividad si falla la verificación de logros
+    }
 
     return activity;
 };
