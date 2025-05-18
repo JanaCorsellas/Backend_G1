@@ -13,15 +13,17 @@ const userSchema = new Schema({
     },
     email: {
         type: String,
-        unique: false,
+        unique: true,
         required: true
     },
     profilePicture: {
         type: String,
+        default: null,
         required: false
     },
     bio: {
         type: String,
+        default: null,
         required: false
     },
     level: {

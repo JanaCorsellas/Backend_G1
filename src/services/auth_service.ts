@@ -18,7 +18,7 @@ const registerNewUser = async (userData: { username: string; email: string; pass
         email: userData.email,
         password: passHash,
         role: "user",
-        profilePicture: "string",
+        profilePicture: null,
         level: 1,
         totalDistance: 0,
         totalTime: 0,
