@@ -13,15 +13,17 @@ const userSchema = new Schema({
     },
     email: {
         type: String,
-        unique: false,
+        unique: true,
         required: true
     },
     profilePicture: {
         type: String,
+        default: null,
         required: false
     },
     bio: {
         type: String,
+        default: null,
         required: false
     },
     level: {
@@ -67,9 +69,14 @@ const userSchema = new Schema({
         enum: ['user', 'admin'],
         default: 'user',
         required: true
+    },
+    refreshToken: {
+        type: String,
+        default: null
     }
 }, {
-    timestamps: true // This automatically handles createdAt and updatedAt
+    versionKey: false,
+    timestamps: true,
 });
 
 // Interface for the User document
@@ -90,6 +97,7 @@ export interface IUser extends Document {
     updatedAt: Date;
     visibility: boolean;
     role: 'user' | 'admin';
+    refreshToken?: string;
 }
 
 // Modificat: no aplicar el pre-hook quan es demana incloure usuaris invisibles

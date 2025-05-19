@@ -2,6 +2,8 @@ import ActivityModel, { IActivity } from "../models/activity";
 import UserModel from "../models/user";
 import mongoose from "mongoose";
 import * as activityHistoryService from './activityHistoryService';
+import { IActivityHistory } from "../models/activityHistory";
+import * as achievementService from './achievementService';
 
 // Función auxiliar para normalizar las fechas (eliminar la influencia de zona horaria)
 const normalizeDate = (date: Date | string | undefined): string => {
@@ -15,8 +17,8 @@ const normalizeDate = (date: Date | string | undefined): string => {
 };
 
 // Crear una nueva actividad y asociarla a un usuario
-export const createActivity = async (userId: string, activityData: Omit<IActivity, 'user'>): Promise<IActivity> => {
-    const activity = await ActivityModel.create({ ...activityData, user: userId });
+export const createActivity = async (userId: string, activityData: Omit<IActivity, 'author'>): Promise<IActivity> => {
+    const activity = await ActivityModel.create({ ...activityData, author: userId });
 
     // Agregar la actividad al array de actividades del usuario
     await UserModel.findByIdAndUpdate(userId, { $push: { activities: activity._id } });
@@ -26,8 +28,22 @@ export const createActivity = async (userId: string, activityData: Omit<IActivit
         activityId: activity._id,
         userId: new mongoose.Types.ObjectId(userId),
         changeType: 'create',
-        newValues: activity.toObject() // Convertir a objeto plano para almacenar
+        newValues: activity.toObject()
     });
+
+    // Verificar y desbloquear nuevos logros
+    try {
+        const { checkAndUnlockAchievements } = await import('./achievementService.js');
+        const newAchievements = await checkAndUnlockAchievements(userId);
+        
+        if (newAchievements.length > 0) {
+            console.log(`Usuario ${userId} desbloqueó ${newAchievements.length} nuevos logros`);
+            // Aquí podrías enviar una notificación al usuario sobre los nuevos logros
+        }
+    } catch (error) {
+        console.error('Error checking achievements:', error);
+        // No fallar la creación de actividad si falla la verificación de logros
+    }
 
     return activity;
 };
@@ -36,12 +52,39 @@ export const createActivity = async (userId: string, activityData: Omit<IActivit
 export const getActivityById = async (activityId: string): Promise<IActivity | null> => {
     return await ActivityModel.findById(activityId).populate('route').populate('musicPlaylist').populate('author');
 };
-
+/*
 // Obtener todas las actividades de un usuario
 export const getActivitiesByUserId = async (userId: string): Promise<IActivity[]> => {
-    return await ActivityModel.find({ user: userId }).populate('route').populate('musicPlaylist');
-};
+    return await ActivityModel.find({ author: userId }).populate('route').populate('musicPlaylist');
+};*/
+export const getActivitiesByUserIdPaginated = async (
+  userId: string,
+  page: number = 1,
+  limit: number = 4
+): Promise<{
+  activities: IActivity[];
+  totalActivities: number;
+  totalPages: number;
+  currentPage: number;
+}> => {
+  const skip = (page - 1) * limit;
 
+  const [activities, totalActivities] = await Promise.all([
+    ActivityModel.find({ author: userId })
+      .skip(skip)
+      .limit(limit)
+      .populate('route')
+      .populate('musicPlaylist'),
+    ActivityModel.countDocuments({ author: userId })
+  ]);
+
+  return {
+    activities,
+    totalActivities,
+    totalPages: Math.ceil(totalActivities / limit),
+    currentPage: page
+  };
+};
 // Obtener todas las actividades
 export const getAllActivities = async (): Promise<IActivity[]> => {
     return await ActivityModel.find().populate('route').populate('musicPlaylist').populate('author');

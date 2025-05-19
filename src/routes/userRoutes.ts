@@ -158,7 +158,7 @@ router.post('/login', userController.loginUser);
  * @openapi
  * /api/users:
  *   get:
- *     summary: Get users with pagination
+ *     summary: Get users
  *     tags: [Users]
  *     parameters:
  *       - in: query
@@ -181,7 +181,7 @@ router.post('/login', userController.loginUser);
  *       500:
  *         description: Error fetching users
  */
-router.get('/', userController.getAllUsers);
+router.get('/', userController.getUsers);
 
 /**
  * @openapi
@@ -295,38 +295,5 @@ router.delete('/:id', userController.deleteUser);
  *         description: Error toggling user visibility
  */
 router.put('/:id/toggle-visibility', userController.toggleUserVisibility);
-
-/**
- * @openapi
- * /api/users/register:
- *   post:
- *     summary: Register a new user
- *     tags: [Users]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - username
- *               - email
- *               - password
- *             properties:
- *               username:
- *                 type: string
- *               email:
- *                 type: string
- *               password:
- *                 type: string
- *     responses:
- *       201:
- *         description: User registered successfully
- *       400:
- *         description: Username already exists
- *       500:
- *         description: Error creating user
- */
-router.post('/register', userController.createUser);
 
 export default router;

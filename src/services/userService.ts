@@ -2,9 +2,9 @@ import UserModel, { IUser } from '../models/user';
 import mongoose from 'mongoose';
 
 /**
- * Obtener usuarios con paginación
+ * Obtenir tots els usuaris
  */
-export const getPaginatedUsers = async (page: number = 1, limit: number = 10): Promise<{
+export const getUsers = async (page: number, limit: number): Promise<{
   users: IUser[];
   totalUsers: number;
   totalPages: number;
@@ -15,15 +15,13 @@ export const getPaginatedUsers = async (page: number = 1, limit: number = 10): P
     
     const query = {};
     
-    console.log("Consulta MongoDB:", JSON.stringify(query));
-    
     if (mongoose.connection.readyState !== 1) {
-      throw new Error("La conexión a MongoDB no está disponible");
+      throw new Error("La connexió a MongoDB no està disponible");
     }
     
     const db = mongoose.connection.db;
     if (!db) {
-      throw new Error("La base de datos no está disponible");
+      throw new Error("La base de de dades no està disponible");
     }
     
     const collection = db.collection('users');
@@ -31,14 +29,14 @@ export const getPaginatedUsers = async (page: number = 1, limit: number = 10): P
     const users = await collection.find(query)
       .skip(skip)
       .limit(limit)
-      .project({ password: 0 }) // Excluir la contraseña
+      .project({ password: 0 }) // Excloure la contrasenya
       .toArray();
     
     const totalUsers = await collection.countDocuments(query);
     
     const totalPages = Math.ceil(totalUsers / limit);
     
-    console.log(`Encontrados ${users.length} usuarios de un total de ${totalUsers}`);
+    console.log(`Trobats ${users.length} usuaris d'un total de ${totalUsers}`);
     
     return {
       users: users as unknown as IUser[],
@@ -47,7 +45,7 @@ export const getPaginatedUsers = async (page: number = 1, limit: number = 10): P
       currentPage: page
     };
   } catch (error) {
-    console.error('Error al obtener usuarios paginados:', error);
+    console.error('Error al obtenir usuaris:', error);
     throw error;
   }
 };
@@ -77,14 +75,6 @@ export const getUserById = async (userId: string): Promise<IUser | null> => {
  */
 export const getUserByUsername = async (username: string): Promise<IUser | null> => {
   return await UserModel.findOne({ username });
-};
-
-/**
- * Obtener todos los usuarios
- */
-export const getAllUsers = async (includeInvisible: boolean = false): Promise<IUser[]> => {
-  const query = includeInvisible ? {} : { visibility: true };
-  return await UserModel.find(query);
 };
 
 /**
