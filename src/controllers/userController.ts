@@ -34,7 +34,7 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
       username,
       email,
       password: hashedPassword,
-      profilePicture,
+      profilePicture: null,
       bio,
       level: 1,
       totalDistance: 0,

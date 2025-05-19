@@ -14,7 +14,9 @@ const router = Router();
  *         - description
  *         - condition
  *         - icon
- *         - usersUnlocked
+ *         - type
+ *         - targetValue
+ *         - difficulty
  *       properties:
  *         title:
  *           type: string
@@ -28,17 +30,42 @@ const router = Router();
  *         icon:
  *           type: string
  *           description: A URL or path to the icon representing the achievement
- *         usersUnlocked:
+ *         type:
  *           type: string
- *           format: objectId
- *           description: The ID of the user who unlocked this achievement (reference to User model)
+ *           enum: [distance_total, distance_single, time_total, time_single, time_monthly, time_yearly, activity_count, consecutive_days, speed_average, elevation_gain]
+ *           description: Type of achievement
+ *         targetValue:
+ *           type: number
+ *           description: Target value to unlock the achievement
+ *         activityType:
+ *           type: string
+ *           enum: [running, cycling, hiking, walking, all]
+ *           description: Specific activity type (optional)
+ *         difficulty:
+ *           type: string
+ *           enum: [bronze, silver, gold, diamond]
+ *           description: Difficulty level of the achievement
+ *         points:
+ *           type: number
+ *           description: Points awarded for unlocking
+ *         usersUnlocked:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: IDs of users who unlocked this achievement
  *       example:
- *         title: "Marathon Finisher"
- *         description: "Complete a full marathon (42.195 km)"
- *         condition: "Run a total distance of 42.195 km in a single activity"
- *         icon: "https://example.com/icons/marathon.png"
- *         usersUnlocked: "60d5ecb74d2dbb001f645a7c"
+ *         title: "Primer Kilómetro"
+ *         description: "Completa tu primer kilómetro corriendo"
+ *         condition: "Distancia >= 1km"
+ *         icon: "directions_run"
+ *         type: "distance_total"
+ *         targetValue: 1000
+ *         activityType: "all"
+ *         difficulty: "bronze"
+ *         points: 10
+ *         usersUnlocked: []
  */
+
 /**
  * @openapi
  * /api/achievements:
@@ -50,97 +77,14 @@ const router = Router();
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - title
- *               - description
- *               - condition
- *               - icon
- *               - usersUnlocked
- *             properties:
- *               title:
- *                 type: string
- *                 description: Título del logro
- *                 example: "Primer Kilómetro"
- *               description:
- *                 type: string
- *                 description: Descripción detallada del logro
- *                 example: "Completa tu primer kilómetro corriendo"
- *               condition:
- *                 type: string
- *                 description: Condición para desbloquear el logro
- *                 example: "Distancia >= 1km"
- *               icon:
- *                 type: string
- *                 description: URL o nombre del icono del logro
- *                 example: "medal_bronze.png"
- *               usersUnlocked:
- *                 type: array
- *                 items:
- *                   type: string
- *                 description: IDs de los usuarios que han desbloqueado el logro
- *                 example: 
- *                   - "507f1f77bcf86cd799439011"
- *                   - "67dab4abca02f3aa7a28b6ab"
+ *             $ref: '#/components/schemas/Achievement'
  *     responses:
  *       201:
  *         description: Logro creado exitosamente
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Logro creado exitosamente"
- *                 achievement:
- *                   type: object
- *                   properties:
- *                     _id:
- *                       type: string
- *                       description: ID único del logro
- *                       example: "507f1f77bcf86cd799439011"
- *                     title:
- *                       type: string
- *                       example: "Primer Kilómetro"
- *                     description:
- *                       type: string
- *                       example: "Completa tu primer kilómetro corriendo"
- *                     condition:
- *                       type: string
- *                       example: "Distancia >= 1km"
- *                     icon:
- *                       type: string
- *                       example: "medal_bronze.png"
- *                     usersUnlocked:
- *                       type: array
- *                       items:
- *                         type: string
- *                       example:
- *                         - "507f1f77bcf86cd799439011"
- *                         - "67dab4abca02f3aa7a28b6ab"
  *       400:
  *         description: Datos inválidos en la petición
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Todos los campos son requeridos"
  *       500:
  *         description: Error interno del servidor
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Error al crear el logro"
- *                 error:
- *                   type: string
  */
 router.post('/', achievementController.createAchievementHandler);
 
@@ -160,57 +104,10 @@ router.post('/', achievementController.createAchievementHandler);
  *     responses:
  *       200:
  *         description: Logro encontrado exitosamente
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 _id:
- *                   type: string
- *                   description: ID único del logro
- *                   example: "507f1f77bcf86cd799439011"
- *                 title:
- *                   type: string
- *                   description: Título del logro
- *                   example: "Primer Kilometro"
- *                 description:
- *                   type: string
- *                   description: Descripción del logro
- *                   example: "Completa tu primer kilómetro corriendo"
- *                 condition:
- *                   type: string
- *                   description: Condición para desbloquear el logro
- *                   example: "Distancia >= 1km"
- *                 icon:
- *                   type: string
- *                   description: URL o nombre del icono del logro
- *                   example: "medal_bronze.png"
- *                 usersUnlocked:
- *                   type: string
- *                   description: ID del usuario que ha desbloqueado el logro
- *                   example: "507f1f77bcf86cd799439011"
  *       404:
  *         description: Logro no encontrado
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "No se encontró el logro"
  *       500:
  *         description: Error interno del servidor
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Error al obtener el logro"
- *                 error:
- *                   type: string
  */
 router.get('/:id', achievementController.getAchievementbyIdHandler);
 
@@ -218,7 +115,7 @@ router.get('/:id', achievementController.getAchievementbyIdHandler);
  * @openapi
  * /api/achievements:
  *   get:
- *     summary: Get all achievements
+ *     summary: Get all achievements (paginated)
  *     tags: [Achievements]
  *     parameters:
  *       - in: query
@@ -231,76 +128,89 @@ router.get('/:id', achievementController.getAchievementbyIdHandler);
  *         name: limit
  *         schema:
  *           type: integer
- *           default: 10
+ *           default: 50
  *         description: Number of achievements per page
  *     responses:
  *       200:
  *         description: Lista de logros obtenida exitosamente
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Logros obtenidos exitosamente"
- *                 total:
- *                   type: number
- *                   description: Número total de logros
- *                   example: 3
- *                 achievements:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       _id:
- *                         type: string
- *                         description: ID único del logro
- *                         example: "507f1f77bcf86cd799439011"
- *                       title:
- *                         type: string
- *                         description: Título del logro
- *                         example: "Primer quilòmetre"
- *                       description:
- *                         type: string
- *                         description: Descripción del logro
- *                         example: "Completa tu primer kilómetro corriendo"
- *                       condition:
- *                         type: string
- *                         description: Condición para desbloquear el logro
- *                         example: "Distancia >= 1km"
- *                       icon:
- *                         type: string
- *                         description: URL o nombre del icono del logro
- *                         example: "medal_bronze.png"
- *                       usersUnlocked:
- *                         type: string
- *                         description: ID del usuario que ha desbloqueado el logro
- *                         example: "507f1f77bcf86cd799439011"
- *       404:
- *         description: No s'han trobat assoliments
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "No s'han trobat assoliments disponibles"
  *       500:
- *         description: Error intern del servidor
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Error al obtenir els assoliments"
- *                 error:
- *                   type: string
+ *         description: Error interno del servidor
  */
 router.get('/', achievementController.getAchievementsController);
+
+/**
+ * @openapi
+ * /api/achievements/all/list:
+ *   get:
+ *     summary: Get all achievements (no pagination)
+ *     tags: [Achievements]
+ *     responses:
+ *       200:
+ *         description: Todos los logros obtenidos exitosamente
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.get('/all/list', achievementController.getAllAchievementsController);
+
+/**
+ * @openapi
+ * /api/achievements/user/{userId}:
+ *   get:
+ *     summary: Get user achievements (locked and unlocked)
+ *     tags: [Achievements]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: ID del usuario
+ *     responses:
+ *       200:
+ *         description: Logros del usuario obtenidos exitosamente
+ *       400:
+ *         description: ID de usuario requerido
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.get('/user/:userId', achievementController.getUserAchievementsController);
+
+/**
+ * @openapi
+ * /api/achievements/user/{userId}/check:
+ *   post:
+ *     summary: Check and unlock new achievements for user
+ *     tags: [Achievements]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: ID del usuario
+ *     responses:
+ *       200:
+ *         description: Verificación completada
+ *       400:
+ *         description: ID de usuario requerido
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.post('/user/:userId/check', achievementController.checkUserAchievementsController);
+
+/**
+ * @openapi
+ * /api/achievements/initialize/defaults:
+ *   post:
+ *     summary: Initialize default achievements
+ *     tags: [Achievements]
+ *     responses:
+ *       200:
+ *         description: Logros por defecto inicializados
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.post('/initialize/defaults', achievementController.initializeAchievementsController);
 
 /**
  * @openapi
@@ -320,89 +230,20 @@ router.get('/', achievementController.getAchievementsController);
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               title:
- *                 type: string
- *                 description: Nuevo título del logro
- *                 example: "Primer Kilometro"
- *               description:
- *                 type: string
- *                 description: Nueva descripción del logro
- *                 example: "Completa tu primer kilómetro corriendo"
- *               condition:
- *                 type: string
- *                 description: Nueva condición para desbloquear el logro
- *                 example: "Distancia >= 1km"
- *               icon:
- *                 type: string
- *                 description: Nueva URL o nombre del icono del logro
- *                 example: "medal_bronze.png"
- *               usersUnlocked:
- *                 type: string
- *                 description: Nuevo ID del usuario que ha desbloqueado el logro
- *                 example: "507f1f77bcf86cd799439011"
+ *             $ref: '#/components/schemas/Achievement'
  *     responses:
  *       200:
  *         description: Logro actualizado exitosamente
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Logro actualizado exitosamente"
- *                 achievement:
- *                   type: object
- *                   properties:
- *                     _id:
- *                       type: string
- *                       description: ID del logro
- *                       example: "507f1f77bcf86cd799439011"
- *                     title:
- *                       type: string
- *                       example: "Primer Kilometro"
- *                     description:
- *                       type: string
- *                       example: "Completa tu primer kilómetro corriendo"
- *                     condition:
- *                       type: string
- *                       example: "Distancia >= 1km"
- *                     icon:
- *                       type: string
- *                       example: "medal_bronze.png"
- *                     usersUnlocked:
- *                       type: string
- *                       example: "507f1f77bcf86cd799439011"
  *       404:
  *         description: Logro no encontrado
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "No se encontró el logro"
  *       500:
  *         description: Error interno del servidor
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Error al actualizar el logro"
- *                 error:
- *                   type: string
  */
 router.put('/:id', achievementController.updateAchievementHandler);
 
 /**
  * @openapi
- * /api/achievements/delete/{id}:
+ * /api/achievements/{id}:
  *   delete:
  *     summary: Delete an existing achievement
  *     tags: [Achievements]
@@ -416,38 +257,11 @@ router.put('/:id', achievementController.updateAchievementHandler);
  *     responses:
  *       200:
  *         description: Logro eliminado exitosamente
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   description: Mensaje de confirmación
- *                   example: "Logro eliminado exitosamente"
  *       404:
  *         description: Logro no encontrado
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "No se encontró el logro"
  *       500:
  *         description: Error interno del servidor
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Error al eliminar el logro"
- *                 error:
- *                   type: string
  */
-router.delete('/delete/:id', achievementController.deleteAchievementHandler);
+router.delete('/:id', achievementController.deleteAchievementHandler);
 
 export default router;

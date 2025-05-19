@@ -32,6 +32,7 @@ export const challengeSchema = new Schema<IChallenge>({
 });
 
 export interface IChallenge {
+    _id?: mongoose.Types.ObjectId;
     title: string;
     description: string; 
     goalType: string;

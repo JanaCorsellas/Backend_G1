@@ -512,7 +512,6 @@ router.get('/inactive', challengeController.getInactiveChallengesController);
  */
 router.put('/:id', challengeController.updateChallengeController);
 
-
 /**
  * @openapi
  * /api/challenges/{id}:
