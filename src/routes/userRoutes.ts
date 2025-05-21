@@ -1,5 +1,6 @@
 import express from 'express';
 import * as userController from '../controllers/userController';
+import { upload } from '../services/userService';
 
 const router = express.Router();
 
@@ -24,8 +25,15 @@ const router = express.Router();
  *           type: string
  *           description: Contrasenya d'autentificació de l'usuari
  *         profilePicture:
- *           type: string
- *           description: Enllaç on es troba la foto de perfil de l'usuari
+ *           type: object
+ *           properties:
+ *             contentType:
+ *               type: string
+ *               description: Tipo de contenido de la imagen
+ *             hasImage:
+ *               type: boolean
+ *               description: Indica si el usuario tiene una imagen de perfil
+ *           description: Información sobre la imagen de perfil del usuario
  *         bio:
  *           type: string
  *           description: Biografía definida de l'usuari
@@ -41,23 +49,28 @@ const router = express.Router();
  *         activities:
  *            type: array
  *            items:
- *              type: objectId
+ *              type: string
+ *              format: objectId
  *              description: ID de les activitats associades a l'usuari
  *         achievements:
  *            type: array
  *            items:
- *              type: objectId
+ *              type: string
+ *              format: objectId
  *              description: ID dels asol·liments associades a l'usuari
  *         challengesCompleted:
  *            type: array
  *            items:
- *              type: objectId
+ *              type: string
+ *              format: objectId
  *              description: ID dels reptes completats associats a l'usuari
  *         createdAt:
- *            type: date-time
+ *            type: string
+ *            format: date-time
  *            description: Hora i data de la creació de l'usuari
  *         updatedAt:
- *            type: date-time
+ *            type: string
+ *            format: date-time
  *            description: Hora i data de l'última actualització de l'usuari
  *         visibility:
  *            type: boolean
@@ -71,6 +84,8 @@ const router = express.Router();
  *         email: nosequeficar@strava.es
  *         password: e%4e488585u4u€3|
  *         profilePicture:
+ *           contentType: image/jpeg
+ *           hasImage: true
  *         bio:
  *         level: 5
  *         totalDistance: 567
@@ -105,8 +120,6 @@ const router = express.Router();
  *               email:
  *                 type: string
  *               password:
- *                 type: string
- *               profilePicture:
  *                 type: string
  *               bio:
  *                 type: string
@@ -208,6 +221,38 @@ router.get('/:id', userController.getUserById);
 
 /**
  * @openapi
+ * /api/users/{id}/profile-picture:
+ *   get:
+ *     summary: Get user profile picture
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: Profile picture
+ *         content:
+ *           image/jpeg:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *           image/png:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       404:
+ *         description: Profile picture not found
+ *       500:
+ *         description: Error fetching profile picture
+ */
+router.get('/:id/profile-picture', userController.getUserProfilePicture);
+
+/**
+ * @openapi
  * /api/users/{id}:
  *   put:
  *     summary: Update user
@@ -222,20 +267,26 @@ router.get('/:id', userController.getUserById);
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             properties:
  *               username:
  *                 type: string
+ *                 description: Nombre de usuario
  *               email:
  *                 type: string
+ *                 description: Correo electrónico
  *               password:
  *                 type: string
+ *                 description: Contraseña
  *               profilePicture:
  *                 type: string
+ *                 format: binary
+ *                 description: Imagen de perfil del usuario (JPEG, JPG o PNG)
  *               bio:
  *                 type: string
+ *                 description: Biografía del usuario
  *               role:
  *                 type: string
  *                 enum: [user, admin]
@@ -243,12 +294,22 @@ router.get('/:id', userController.getUserById);
  *     responses:
  *       200:
  *         description: User updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: User updated successfully
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
  *       404:
  *         description: User not found
  *       500:
  *         description: Error updating user
  */
-router.put('/:id', userController.updateUser);
+router.put('/:id', upload, userController.updateUser);
 
 /**
  * @openapi
