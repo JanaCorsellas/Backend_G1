@@ -33,12 +33,13 @@ export const createActivity = async (userId: string, activityData: Omit<IActivit
 
     // Verificar y desbloquear nuevos logros
     try {
-        const { checkAndUnlockAchievements } = await import('./achievementService.js');
-        const newAchievements = await checkAndUnlockAchievements(userId);
+        const newAchievements = await achievementService.checkAndUnlockAchievements(userId);
         
         if (newAchievements.length > 0) {
             console.log(`Usuario ${userId} desbloqueó ${newAchievements.length} nuevos logros`);
-            // Aquí podrías enviar una notificación al usuario sobre los nuevos logros
+            
+            // No es necesario actualizar manualmente aquí, ya que checkAndUnlockAchievements
+            // ahora también actualiza el array de achievements del usuario
         }
     } catch (error) {
         console.error('Error checking achievements:', error);

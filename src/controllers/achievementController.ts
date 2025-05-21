@@ -110,7 +110,6 @@ export const getUserAchievementsController = async (req: Request, res: Response)
         res.status(500).json({ message: 'Error al obtener logros del usuario' });
     }
 };
-
 export const checkUserAchievementsController = async (req: Request, res: Response): Promise<void> => {
     try {
         const userId = req.params.userId;
