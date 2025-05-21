@@ -1,37 +1,5 @@
-import mongoose from 'mongoose';
 import UserModel, { IUser } from '../models/user';
-import multer from 'multer';
-import fs from 'fs';
-import path from 'path';
-
-// Configuración de multer para almacenamiento temporal
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    // Asegurarse de que el directorio 'uploads' existe
-    if (!fs.existsSync('uploads')) {
-      fs.mkdirSync('uploads');
-    }
-    cb(null, 'uploads/');
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + path.extname(file.originalname));
-  }
-});
-
-// Configuración de los tipos de archivos permitidos
-const fileFilter = (req: any, file: any, cb: any) => {
-  if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/png' || file.mimetype === 'image/jpg') {
-    cb(null, true);
-  } else {
-    cb(new Error('Formato de imagen no soportado, use JPG, JPEG o PNG'), false);
-  }
-};
-
-export const upload = multer({ 
-  storage: storage, 
-  limits: { fileSize: 1024 * 1024 * 5 }, // 5MB max
-  fileFilter: fileFilter 
-}).single('profilePicture');
+import mongoose from 'mongoose';
 
 /**
  * Obtenir tots els usuaris
@@ -70,23 +38,8 @@ export const getUsers = async (page: number, limit: number): Promise<{
     
     console.log(`Trobats ${users.length} usuaris d'un total de ${totalUsers}`);
     
-    // Modificar las respuestas para no incluir el buffer de la imagen completo
-    const processedUsers = users.map(user => {
-      if (user.profilePicture && user.profilePicture.data) {
-        return {
-          ...user,
-          profilePicture: {
-            contentType: user.profilePicture.contentType,
-            url: user.profilePicture.url,
-            hasImage: true
-          }
-        };
-      }
-      return user;
-    });
-    
     return {
-      users: processedUsers as unknown as IUser[],
+      users: users as unknown as IUser[],
       totalUsers,
       totalPages,
       currentPage: page
@@ -138,38 +91,6 @@ export const updateUser = async (userId: string, userData: Partial<IUser>): Prom
     userData,
     { new: true }
   );
-};
-
-/**
- * Actualizar un usuario incluyendo la imagen del perfil
- */
-export const updateUserWithImage = async (userId: string, userData: Partial<IUser>, imageFile?: Express.Multer.File): Promise<IUser | null> => {
-  try {
-    const updateData: any = { ...userData };
-    
-    // Si hay un archivo de imagen, procesarlo
-    if (imageFile) {
-      const imageData = fs.readFileSync(imageFile.path);
-      
-      updateData.profilePicture = {
-        data: imageData,
-        contentType: imageFile.mimetype,
-        url: null // Limpiar URL si existía
-      };
-      
-      // Eliminar el archivo temporal
-      fs.unlinkSync(imageFile.path);
-    }
-    
-    return await UserModel.findByIdAndUpdate(
-      userId,
-      updateData,
-      { new: true }
-    );
-  } catch (error) {
-    console.error('Error al actualizar usuario con imagen:', error);
-    throw error;
-  }
 };
 
 /**
@@ -248,20 +169,4 @@ export const toggleUserVisibility = async (userId: string): Promise<IUser | null
     console.error('Error en toggleUserVisibility:', error);
     return null;
   }
-};
-
-/**
- * Obtener la imagen de perfil de un usuario
- */
-export const getUserProfilePicture = async (userId: string): Promise<{data: Buffer | null, contentType: string | null}> => {
-  const user = await UserModel.findById(userId);
-  
-  if (!user || !user.profilePicture || !user.profilePicture.data) {
-    return { data: null, contentType: null };
-  }
-  
-  return { 
-    data: user.profilePicture.data,
-    contentType: user.profilePicture.contentType || 'image/jpeg'
-  };
 };

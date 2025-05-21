@@ -71,27 +71,6 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
     res.status(500).json({ message: 'Error creating user' });
   }
 };
-export const getUserProfilePicture = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const userId = req.params.id;
-    
-    const user = await User.findById(userId);
-    
-    if (!user || !user.profilePicture || !user.profilePicture.data) {
-      res.status(404).json({ message: 'Profile picture not found' });
-      return;
-    }
-    
-    // Configurar los headers
-    res.contentType(user.profilePicture.contentType || 'image/jpeg');
-    
-    // Enviar los datos de la imagen
-    res.send(user.profilePicture.data);
-  } catch (error) {
-    console.error('Error fetching profile picture:', error);
-    res.status(500).json({ message: 'Error fetching profile picture' });
-  }
-};
 
 /**
  * Iniciar sessió

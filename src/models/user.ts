@@ -17,22 +17,9 @@ const userSchema = new Schema({
         required: true
     },
     profilePicture: {
-        data: {
-            type: Buffer,
-            default: null,
-            required: false
-        },
-        contentType: {
-            type: String,
-            default: null,
-            required: false
-        },
-        // Mantener un campo para URL opcional por compatibilidad
-        url: {
-            type: String,
-            default: null,
-            required: false
-        }
+        type: String,
+        default: null,
+        required: false
     },
     bio: {
         type: String,
@@ -98,11 +85,7 @@ export interface IUser extends Document {
     username: string;
     email: string;
     password: string;
-    profilePicture?: {
-        data?: Buffer;
-        contentType?: string;
-        url?: string;
-    };
+    profilePicture?: string;
     bio?: string;
     level: number;
     totalDistance: number;
