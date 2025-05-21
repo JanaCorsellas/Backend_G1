@@ -80,10 +80,15 @@ export const getAchievementsController = async (req: Request, res: Response): Pr
 
 export const getAllAchievementsController = async (req: Request, res: Response): Promise<void> => {
     try {
+        // Obtener todos los logros
         const achievements = await achievementService.getAllAchievements();
+        
+        console.log(`Obtenidos ${achievements.length} logros en total`);
+        
+        // Esta es la respuesta que se envía al Swagger
         res.status(200).json({
             message: "Logros obtenidos exitosamente",
-            achievements,
+            achievements: achievements, // Asegúrate de que esto es un array con los logros reales
             total: achievements.length
         });
     } catch (error) {
@@ -101,6 +106,9 @@ export const getUserAchievementsController = async (req: Request, res: Response)
         }
 
         const userAchievements = await achievementService.getUserAchievements(userId);
+        
+        console.log(`Usuario ${userId} tiene ${userAchievements.unlocked.length} logros desbloqueados de ${userAchievements.totalCount} totales`);
+        
         res.status(200).json({
             message: "Logros del usuario obtenidos exitosamente",
             data: userAchievements
@@ -110,6 +118,7 @@ export const getUserAchievementsController = async (req: Request, res: Response)
         res.status(500).json({ message: 'Error al obtener logros del usuario' });
     }
 };
+
 export const checkUserAchievementsController = async (req: Request, res: Response): Promise<void> => {
     try {
         const userId = req.params.userId;
@@ -119,6 +128,9 @@ export const checkUserAchievementsController = async (req: Request, res: Respons
         }
 
         const newlyUnlocked = await achievementService.checkAndUnlockAchievements(userId);
+        
+        console.log(`Se verificaron logros para usuario ${userId}. Nuevos logros desbloqueados: ${newlyUnlocked.length}`);
+        
         res.status(200).json({
             message: "Verificación de logros completada",
             newlyUnlocked,
@@ -132,13 +144,85 @@ export const checkUserAchievementsController = async (req: Request, res: Respons
 
 export const initializeAchievementsController = async (req: Request, res: Response): Promise<void> => {
     try {
-        await achievementService.initializeDefaultAchievements();
+        console.log("Iniciando el proceso de inicialización de logros por defecto desde el controlador");
+        
+        // Llamamos al servicio que inicializa los logros por defecto
+        const createdAchievements = await achievementService.initializeGeneralAchievements();
+        
+        console.log(`Inicialización completada. Logros creados: ${createdAchievements.length}`);
+        
+        // Enviamos la respuesta con los logros creados
         res.status(200).json({
-            message: "Logros por defecto inicializados exitosamente"
+            message: "Logros por defecto inicializados exitosamente",
+            count: createdAchievements.length
         });
     } catch (error) {
         console.error('Error al inicializar logros:', error);
         res.status(500).json({ message: 'Error al inicializar logros' });
+    }
+};
+
+// Inicializar logros generales
+export const initializeGeneralAchievementsController = async (req: Request, res: Response): Promise<void> => {
+    try {
+        console.log("Iniciando la inicialización de logros generales");
+        const createdAchievements = await achievementService.initializeGeneralAchievements();
+        
+        res.status(200).json({
+            message: "Logros generales inicializados exitosamente",
+            count: createdAchievements.length
+        });
+    } catch (error) {
+        console.error('Error al inicializar logros generales:', error);
+        res.status(500).json({ message: 'Error al inicializar logros generales' });
+    }
+};
+
+// Inicializar logros de distancia total
+export const initializeDistanceTotalAchievementsController = async (req: Request, res: Response): Promise<void> => {
+    try {
+        console.log("Iniciando la inicialización de logros de distancia total");
+        const createdAchievements = await achievementService.initializeDistanceTotalAchievements();
+        
+        res.status(200).json({
+            message: "Logros de distancia total inicializados exitosamente",
+            count: createdAchievements.length
+        });
+    } catch (error) {
+        console.error('Error al inicializar logros de distancia total:', error);
+        res.status(500).json({ message: 'Error al inicializar logros de distancia total' });
+    }
+};
+
+// Inicializar logros de distancia individual
+export const initializeDistanceSingleAchievementsController = async (req: Request, res: Response): Promise<void> => {
+    try {
+        console.log("Iniciando la inicialización de logros de distancia individual");
+        const createdAchievements = await achievementService.initializeDistanceSingleAchievements();
+        
+        res.status(200).json({
+            message: "Logros de distancia individual inicializados exitosamente",
+            count: createdAchievements.length
+        });
+    } catch (error) {
+        console.error('Error al inicializar logros de distancia individual:', error);
+        res.status(500).json({ message: 'Error al inicializar logros de distancia individual' });
+    }
+};
+
+// Inicializar logros específicos por actividad
+export const initializeActivitySpecificAchievementsController = async (req: Request, res: Response): Promise<void> => {
+    try {
+        console.log("Iniciando la inicialización de logros específicos por actividad");
+        const createdAchievements = await achievementService.initializeActivitySpecificAchievements();
+        
+        res.status(200).json({
+            message: "Logros específicos por actividad inicializados exitosamente",
+            count: createdAchievements.length
+        });
+    } catch (error) {
+        console.error('Error al inicializar logros específicos por actividad:', error);
+        res.status(500).json({ message: 'Error al inicializar logros específicos por actividad' });
     }
 };
 
