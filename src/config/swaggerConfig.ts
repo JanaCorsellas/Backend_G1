@@ -55,8 +55,8 @@ const swaggerOptions = {
 
     servers: [
       {
-        url: `http://localhost:3000`, // El servidor donde la API se ejecuta
-        description: 'Servidor local para desarrollo', // Descripción del servidor
+        url: `http://localhost:8080`,
+        description: 'Servidor local per desenvolupament',
       },
     ],
   },

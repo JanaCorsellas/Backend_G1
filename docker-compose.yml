@@ -1,0 +1,56 @@
+services:
+  backend:
+    image: polaltes0403/backend_g1:latest
+    container_name: server_api
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mongodb
+    networks:
+      - "db_network"
+      - "frontend_network"
+    restart:
+      unless-stopped
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/ProyectoEA_bd
+      - NODE_ENV=production
+  mongodb:
+    image: polaltes0403/custom_mongo_g1:latest
+    container_name: monguito
+    ports:
+      - "27017:27017"
+    networks:
+      - "db_network"
+    volumes:
+      - mongo_data:/data/db
+    restart:
+      unless-stopped
+  angular:
+    image: polaltes0403/backoffice_g1:latest
+    container_name: backoffice
+    ports:
+      - "8081:80"
+    depends_on:
+      - backend
+    environment:
+      - PUBLIC_API_URL=http://backend:8080
+    networks:
+      - "frontend_network"
+  webapp:
+    image: polaltes0403/webapp_g1:latest
+    container_name: web_container
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    environment:
+      - PUBLIC_API_URL=http://backend:8080
+    networks:
+      - "frontend_network"
+
+networks:
+  frontend_network:
+  db_network:
+
+volumes:
+  mongo_data:
