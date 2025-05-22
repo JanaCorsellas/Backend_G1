@@ -1,3 +1,4 @@
+// src/models/user.ts - Actualización del modelo
 import mongoose, { Schema, Types, Document } from "mongoose";
 
 // Schema definition
@@ -20,6 +21,7 @@ const userSchema = new Schema({
         type: String,
         default: null,
         required: false
+        // Ahora almacenará la ruta del archivo: "uploads/profile-pictures/userId_timestamp.jpg"
     },
     bio: {
         type: String,
@@ -79,13 +81,25 @@ const userSchema = new Schema({
     timestamps: true,
 });
 
+// Método virtual para obtener la URL completa de la imagen
+userSchema.virtual('profilePictureUrl').get(function() {
+    if (this.profilePicture) {
+        return `${process.env.BASE_URL || 'http://localhost:3000'}/${this.profilePicture}`;
+    }
+    return null;
+});
+
+// Asegurar que los virtuals se incluyan en JSON
+userSchema.set('toJSON', { virtuals: true });
+
 // Interface for the User document
 export interface IUser extends Document {
     _id: Types.ObjectId;
     username: string;
     email: string;
     password: string;
-    profilePicture?: string;
+    profilePicture?: string; // Ruta del archivo
+    profilePictureUrl?: string; // URL completa (virtual)
     bio?: string;
     level: number;
     totalDistance: number;
@@ -100,20 +114,16 @@ export interface IUser extends Document {
     refreshToken?: string;
 }
 
-// Modificat: no aplicar el pre-hook quan es demana incloure usuaris invisibles
+// Pre-hooks existentes...
 userSchema.pre('find', function() {
-    // Verificar si la consulta té l'opció includeInvisible
     const includeInvisible = (this as any)._mongooseOptions?.includeInvisible;
-    
     if (!includeInvisible) {
-        // Només filtrar si no es demana incloure usuaris invisibles
         this.where({ visibility: { $ne: false } });
     }
 });
 
 userSchema.pre('findOne', function() {
     const includeInvisible = (this as any)._mongooseOptions?.includeInvisible;
-    
     if (!includeInvisible) {
         this.where({ visibility: { $ne: false } });
     }

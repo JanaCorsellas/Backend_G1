@@ -16,6 +16,7 @@ import authRoutes from './routes/auth_routes';
 import { initializeSocket } from './config/socketConfig';
 import activityTrackingRoutes from './routes/activityTrackingRoutes';
 
+
 // Load environment variables
 dotenv.config();
 
@@ -60,6 +61,7 @@ app.use('/api/activity-history', activityHistoryRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/activity-tracking', activityTrackingRoutes);
+app.use('/uploads', express.static('uploads'));
 app.get('/', (req, res) => {
   res.send('API en funcionament, la documentació es troba a /api-docs.');
 });

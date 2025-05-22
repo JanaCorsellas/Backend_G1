@@ -1,5 +1,6 @@
 import express from 'express';
 import * as userController from '../controllers/userController';
+import { uploadProfilePicture } from '../middleware/upload';
 
 const router = express.Router();
 
@@ -25,7 +26,7 @@ const router = express.Router();
  *           description: Contrasenya d'autentificació de l'usuari
  *         profilePicture:
  *           type: string
- *           description: Enllaç on es troba la foto de perfil de l'usuari
+ *           description: Ruta del archivo de imagen de perfil
  *         bio:
  *           type: string
  *           description: Biografía definida de l'usuari
@@ -70,7 +71,7 @@ const router = express.Router();
  *         username: Corredor44858
  *         email: nosequeficar@strava.es
  *         password: e%4e488585u4u€3|
- *         profilePicture:
+ *         profilePicture: uploads/profile-pictures/userId_timestamp.jpg
  *         bio:
  *         level: 5
  *         totalDistance: 567
@@ -208,6 +209,167 @@ router.get('/:id', userController.getUserById);
 
 /**
  * @openapi
+ * /api/users/{userId}/profile-picture:
+ *   post:
+ *     summary: Upload profile picture
+ *     description: Sube una imagen de perfil para un usuario específico. Solo acepta archivos de imagen (JPG, PNG, GIF, etc.) con un tamaño máximo de 5MB.
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del usuario
+ *         example: "60d5ecb74d2dbb001f645a7c"
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - profilePicture
+ *             properties:
+ *               profilePicture:
+ *                 type: string
+ *                 format: binary
+ *                 description: Archivo de imagen (JPG, PNG, GIF, etc.) - Máximo 5MB
+ *           encoding:
+ *             profilePicture:
+ *               contentType: image/*
+ *     responses:
+ *       200:
+ *         description: Imagen de perfil subida exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Imagen de perfil subida exitosamente"
+ *                 profilePicture:
+ *                   type: string
+ *                   example: "uploads/profile-pictures/60d5ecb74d2dbb001f645a7c_1647875123456.jpg"
+ *                 profilePictureUrl:
+ *                   type: string
+ *                   example: "http://localhost:3000/uploads/profile-pictures/60d5ecb74d2dbb001f645a7c_1647875123456.jpg"
+ *       400:
+ *         description: Error en la petición
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *               examples:
+ *                 no_file:
+ *                   summary: No se proporcionó archivo
+ *                   value:
+ *                     message: "No se proporcionó ningún archivo"
+ *                 invalid_file:
+ *                   summary: Archivo inválido
+ *                   value:
+ *                     message: "Solo se permiten archivos de imagen"
+ *       404:
+ *         description: Usuario no encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Usuario no encontrado"
+ *       413:
+ *         description: Archivo demasiado grande
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "File too large"
+ *       500:
+ *         description: Error interno del servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Error subiendo imagen de perfil"
+ */
+router.post('/:userId/profile-picture', 
+  uploadProfilePicture.single('profilePicture'), 
+  userController.uploadProfilePicture
+);
+
+/**
+ * @openapi
+ * /api/users/{userId}/profile-picture:
+ *   delete:
+ *     summary: Delete profile picture
+ *     description: Elimina la imagen de perfil actual del usuario
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del usuario
+ *         example: "60d5ecb74d2dbb001f645a7c"
+ *     responses:
+ *       200:
+ *         description: Imagen de perfil eliminada exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Imagen de perfil eliminada exitosamente"
+ *       400:
+ *         description: El usuario no tiene imagen de perfil
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "El usuario no tiene imagen de perfil"
+ *       404:
+ *         description: Usuario no encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Usuario no encontrado"
+ *       500:
+ *         description: Error interno del servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Error eliminando imagen de perfil"
+ */
+router.delete('/:userId/profile-picture', userController.deleteProfilePicture);
+
+/**
+ * @openapi
  * /api/users/{id}:
  *   put:
  *     summary: Update user
@@ -295,5 +457,37 @@ router.delete('/:id', userController.deleteUser);
  *         description: Error toggling user visibility
  */
 router.put('/:id/toggle-visibility', userController.toggleUserVisibility);
+
+/**
+ * @openapi
+ * /uploads/{imagePath}:
+ *   get:
+ *     summary: Serve profile picture
+ *     description: Sirve una imagen de perfil específica. Esta ruta es servida por Express como archivo estático.
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: imagePath
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Ruta de la imagen (sin 'uploads/')
+ *         example: "profile-pictures/60d5ecb74d2dbb001f645a7c_1647875123456.jpg"
+ *     responses:
+ *       200:
+ *         description: Imagen servida exitosamente
+ *         content:
+ *           image/*:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       404:
+ *         description: Imagen no encontrada
+ *         content:
+ *           text/html:
+ *             schema:
+ *               type: string
+ *               example: "Cannot GET /uploads/profile-pictures/nonexistent.jpg"
+ */
 
 export default router;
