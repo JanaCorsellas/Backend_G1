@@ -156,6 +156,47 @@ router.post('/login', userController.loginUser);
 
 /**
  * @openapi
+ * /api/users/search:
+ *   get:
+ *     summary: Buscar usuarios por nombre de usuario
+ *     tags: [Users]
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Nombre de usuario a buscar
+ *     responses:
+ *       200:
+ *         description: Lista de usuarios encontrados
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 users:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                       username:
+ *                         type: string
+ *                       profilePicture:
+ *                         type: string
+ *                       level:
+ *                         type: integer
+ *       400:
+ *         description: El parámetro de búsqueda es obligatorio
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.get('/search',userController.searchUsers);
+
+/**
+ * @openapi
  * /api/users:
  *   get:
  *     summary: Get users
