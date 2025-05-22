@@ -1,3 +1,4 @@
+// src/controllers/userController.ts - Versión corregida
 import { Request, Response } from 'express';
 import User from '../models/user';
 import { deleteActivity } from '../services/activityService';
@@ -6,6 +7,7 @@ import * as userService from '../services/userService';
 import mongoose from 'mongoose';
 import fs from 'fs';
 import path from 'path';
+
 /**
  * Crear un nou usuari
  */
@@ -236,7 +238,8 @@ export const deleteUser = async (req: Request, res: Response): Promise<void> => 
           res.status(500).json({message:"Server error: ", err});
       }
 };
-// Función para subir imagen de perfil
+
+// ✅ MEJORADO: Función para subir imagen de perfil con mejor logging
 export const uploadProfilePicture = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.params.userId;
@@ -340,7 +343,7 @@ export const uploadProfilePicture = async (req: Request, res: Response): Promise
   }
 };
 
-// Función para eliminar imagen de perfil
+// ✅ CORREGIDO: Función para eliminar imagen de perfil 
 export const deleteProfilePicture = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.params.userId;
@@ -364,8 +367,18 @@ export const deleteProfilePicture = async (req: Request, res: Response): Promise
       return;
     }
     
-    // Eliminar el archivo del sistema
-    const imagePath = path.join(process.cwd(), user.profilePicture);
+    // Guardar la ruta de la imagen antes de eliminarla de la BD
+    const oldProfilePicture = user.profilePicture;
+    
+    // ✅ PASO 1: Primero eliminar la referencia de la base de datos
+    user.profilePicture = undefined;
+    await user.save();
+    
+    console.log(`✅ Profile picture reference removed from database`);
+    console.log(`Updated user profilePicture field: ${user.profilePicture}`);
+    
+    // ✅ PASO 2: Después eliminar el archivo del sistema de archivos
+    const imagePath = path.join(process.cwd(), oldProfilePicture);
     console.log(`Attempting to delete file: ${imagePath}`);
     
     if (fs.existsSync(imagePath)) {
@@ -374,32 +387,30 @@ export const deleteProfilePicture = async (req: Request, res: Response): Promise
         console.log(`✅ File deleted successfully: ${imagePath}`);
       } catch (fileError) {
         console.error(`❌ Error deleting file: ${fileError}`);
-        // Continuar aunque no se pueda eliminar el archivo físico
+        // No fallar si no se puede eliminar el archivo físico
       }
     } else {
       console.log(`⚠️ File does not exist: ${imagePath}`);
     }
     
-    // ✅ IMPORTANTE: Limpiar completamente la referencia en la base de datos
-    user.profilePicture = undefined; // En lugar de null, usar undefined
-    await user.save();
-    
-    console.log(`✅ Profile picture reference removed from database`);
-    console.log(`Updated user profilePicture field: ${user.profilePicture}`);
+    // ✅ PASO 3: Obtener el usuario actualizado de la base de datos para confirmar
+    const refreshedUser = await User.findById(userId).select('-password');
     
     // ✅ Respuesta con información detallada
     res.status(200).json({
       message: 'Imagen de perfil eliminada exitosamente',
       success: true,
       user: {
-        id: user._id,
-        username: user.username,
-        profilePicture: user.profilePicture, // Debería ser undefined/null
+        id: refreshedUser!._id,
+        username: refreshedUser!.username,
+        profilePicture: refreshedUser!.profilePicture, // Debería ser undefined/null
+        profilePictureUrl: refreshedUser!.profilePictureUrl // También debería ser null
       },
       debug: {
-        fileDeleted: fs.existsSync(imagePath) ? false : true,
-        previousPath: user.profilePicture,
-        currentPath: user.profilePicture
+        fileDeleted: !fs.existsSync(imagePath),
+        previousPath: oldProfilePicture,
+        currentPath: refreshedUser!.profilePicture,
+        databaseUpdated: refreshedUser!.profilePicture === undefined || refreshedUser!.profilePicture === null
       }
     });
   } catch (error: any) {
@@ -410,6 +421,7 @@ export const deleteProfilePicture = async (req: Request, res: Response): Promise
     });
   }
 };
+
 /**
  * Alternar visibilitat d'un usuari
  */
