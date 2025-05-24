@@ -1,5 +1,6 @@
 import express from 'express';
 import http from 'http';
+import https from 'https';
 import userRoutes from './routes/userRoutes';
 import referencePointRoutes from './routes/referencePointRoutes';
 import activityRoutes from './routes/activityRoutes';
@@ -87,8 +88,8 @@ async function startServer() {
       
     // Start the server
     server.listen(PORT, () => {
-      console.log(`Servidor executant-se en http://localhost:${PORT}`);
-      console.log(`Documentació disponible en http://localhost:${PORT}/api-docs`);
+      console.log(`Servidor executant-se en https://ea1-api.upc.edu`);
+      console.log(`Documentació disponible en http://ea1-api.upc.edu/api-docs`);
     });
   } catch (error) {
     console.error('Error al iniciar el servidor:', error);
