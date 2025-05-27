@@ -171,6 +171,17 @@ export const toggleUserVisibility = async (userId: string): Promise<IUser | null
   }
 };
 
-export function findUsersByQuery(query: string) {
-  throw new Error('Function not implemented.');
-}
+
+export const findUsersByQuery = async (search: string) => {
+  const regex = new RegExp(search, 'i');
+
+
+  const users = await UserModel.find({ username: regex })
+    .select('username profilePicture level')
+    .limit(10)
+    .lean();
+
+
+  return users;
+};
+

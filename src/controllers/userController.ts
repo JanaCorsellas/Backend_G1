@@ -526,8 +526,10 @@ export const searchUsers = async (req: Request, res: Response) => {
     }
 
   try {
+
     const users = await userService.findUsersByQuery(query) as unknown as any[];
     if (!users || users.length === 0) {
+
       res.status(404).json({ message: 'No se encontraron usuarios' });
       return;
     }
@@ -539,8 +541,12 @@ export const searchUsers = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Error interno del servidor' });
     return;
   }
+
 };
 
 
 export const uploadProfilePicture = uploadProfilePictureCloudinary;
 export const deleteProfilePicture = deleteProfilePictureCloudinary;
+
+
+
