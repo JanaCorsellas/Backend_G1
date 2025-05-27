@@ -479,5 +479,27 @@ export const toggleUserVisibility = async (req: Request, res: Response): Promise
     console.error('Error al cambiar la visibilidad del usuario:', error);
     res.status(500).json({ message: 'Error al cambiar la visibilidad del usuario' });
   }
-  
+};
+
+export const searchUsers = async (req: Request, res: Response) => {
+   const query = (req.query.search as string) || '';
+    if (query.length < 2) {
+      res.status(400).json({ message: 'Query demasiado corto' });
+      return;
+    }
+
+  try {
+    const users = await userService.findUsersByQuery(query);
+    if (users.length === 0) {
+      res.status(404).json({ message: 'No se encontraron usuarios' });
+      return;
+    }
+
+    res.json({ users });
+    return;
+  } catch (error) {
+    console.error('Error al buscar usuarios:', error);
+    res.status(500).json({ message: 'Error interno del servidor' });
+    return;
+  }
 };

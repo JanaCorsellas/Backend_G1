@@ -170,3 +170,16 @@ export const toggleUserVisibility = async (userId: string): Promise<IUser | null
     return null;
   }
 };
+
+export const findUsersByQuery = async (search: string) => {
+  const regex = new RegExp(search, 'i');
+
+
+  const users = await UserModel.find({ username: regex })
+    .select('username profilePicture level')
+    .limit(10)
+    .lean();
+
+
+  return users;
+};
