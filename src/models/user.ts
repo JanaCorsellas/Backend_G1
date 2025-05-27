@@ -1,4 +1,4 @@
-// src/models/user.ts - Actualización del modelo
+// src/models/user.ts - Actualizado para Cloudinary
 import mongoose, { Schema, Types, Document } from "mongoose";
 
 // Schema definition
@@ -21,7 +21,7 @@ const userSchema = new Schema({
         type: String,
         default: null,
         required: false
-        // Ahora almacenará la ruta del archivo: "uploads/profile-pictures/userId_timestamp.jpg"
+        
     },
     bio: {
         type: String,
@@ -81,25 +81,72 @@ const userSchema = new Schema({
     timestamps: true,
 });
 
-// Método virtual para obtener la URL completa de la imagen
+
 userSchema.virtual('profilePictureUrl').get(function() {
-    if (this.profilePicture) {
-        return `${process.env.BASE_URL || 'http://localhost:3000'}/${this.profilePicture}`;
-    }
-    return null;
+    // Con Cloudinary, profilePicture ya es la URL completa
+    return this.profilePicture || null;
 });
+
+
+userSchema.virtual('profilePictureThumb').get(function() {
+    if (!this.profilePicture) return null;
+    
+    // Si es una URL de Cloudinary, podemos crear una versión thumbnail
+    if (this.profilePicture.includes('cloudinary.com')) {
+        // Insertar transformación para thumbnail (100x100)
+        return this.profilePicture.replace(
+            '/image/upload/',
+            '/image/upload/w_100,h_100,c_fill,g_face/'
+        );
+    }
+    
+    return this.profilePicture;
+});
+
+
+userSchema.virtual('profilePictureMedium').get(function() {
+    if (!this.profilePicture) return null;
+    
+    if (this.profilePicture.includes('cloudinary.com')) {
+        // Insertar transformación para mediano (250x250)
+        return this.profilePicture.replace(
+            '/image/upload/',
+            '/image/upload/w_250,h_250,c_fill,g_face/'
+        );
+    }
+    
+    return this.profilePicture;
+});
+
+
+userSchema.methods.getCloudinaryPublicId = function() {
+    if (!this.profilePicture || !this.profilePicture.includes('cloudinary.com')) {
+        return null;
+    }
+    
+    try {
+        // Extraer public_id de URL de Cloudinary
+        const matches = this.profilePicture.match(/\/v\d+\/(.+)\.[a-zA-Z]+$/);
+        return matches && matches[1] ? matches[1] : null;
+    } catch (error) {
+        console.error('Error extracting public_id:', error);
+        return null;
+    }
+};
 
 // Asegurar que los virtuals se incluyan en JSON
 userSchema.set('toJSON', { virtuals: true });
 
-// Interface for the User document
+
 export interface IUser extends Document {
     _id: Types.ObjectId;
     username: string;
     email: string;
     password: string;
-    profilePicture?: string; // Ruta del archivo
-    profilePictureUrl?: string; // URL completa (virtual)
+    profilePicture?: string; 
+    profilePictureUrl?: string; 
+    profilePictureThumb?: string; 
+    profilePictureMedium?: string; 
     bio?: string;
     level: number;
     totalDistance: number;
@@ -112,9 +159,12 @@ export interface IUser extends Document {
     visibility: boolean;
     role: 'user' | 'admin';
     refreshToken?: string;
+    
+   
+    getCloudinaryPublicId(): string | null;
 }
 
-// Pre-hooks existentes...
+// Pre-hooks existentes se mantienen igual...
 userSchema.pre('find', function() {
     const includeInvisible = (this as any)._mongooseOptions?.includeInvisible;
     if (!includeInvisible) {

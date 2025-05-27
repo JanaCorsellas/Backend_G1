@@ -171,6 +171,7 @@ export const toggleUserVisibility = async (userId: string): Promise<IUser | null
   }
 };
 
+
 export const findUsersByQuery = async (search: string) => {
   const regex = new RegExp(search, 'i');
 
@@ -183,3 +184,4 @@ export const findUsersByQuery = async (search: string) => {
 
   return users;
 };
+

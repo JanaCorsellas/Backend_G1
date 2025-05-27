@@ -15,7 +15,7 @@ import chatRoutes from './routes/chatRoutes';
 import authRoutes from './routes/auth_routes';
 import { initializeSocket } from './config/socketConfig';
 import activityTrackingRoutes from './routes/activityTrackingRoutes';
-
+import { verifyCloudinaryConfig } from './config/cloudinary'; 
 
 // Load environment variables
 dotenv.config();
@@ -39,14 +39,14 @@ app.use(express.json());
 const corsOptions = {
   origin: '*' ,
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
 app.use(cors(corsOptions));
 app.use((req, res, next) => {
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
-  res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp'); // opcional
+  res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp'); 
   next();
 });
 
@@ -61,7 +61,8 @@ app.use('/api/activity-history', activityHistoryRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/activity-tracking', activityTrackingRoutes);
-app.use('/uploads', express.static('uploads'));
+
+
 app.get('/', (req, res) => {
   res.send('API en funcionament, la documentació es troba a /api-docs.');
 });
@@ -85,15 +86,33 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 
 async function startServer() {
   try {
+
+    console.log(' Verificando configuración de Cloudinary...');
+    const cloudinaryConfigured = verifyCloudinaryConfig();
+    
+    if (!cloudinaryConfigured) {
+      console.error(' Error: Configuración de Cloudinary incompleta');
+      console.error('   Las imágenes de perfil no funcionarán correctamente');
+      console.error('   Configura las variables de entorno de Cloudinary antes de continuar');
+   
+    }
+    
     await connectDatabase();
       
-    // Start the server
+
     server.listen(PORT, () => {
-      console.log(`Servidor executant-se en http://localhost:${PORT}`);
-      console.log(`Documentació disponible en http://localhost:${PORT}/api-docs`);
+      console.log(` Servidor ejecutándose en http://localhost:${PORT}`);
+      console.log(` Documentación disponible en http://localhost:${PORT}/api-docs`);
+      
+
+      if (cloudinaryConfigured) {
+        console.log('  Cloudinary configurado correctamente para imágenes');
+      } else {
+        console.log('  Cloudinary NO configurado - revisar variables de entorno');
+      }
     });
   } catch (error) {
-    console.error('Error al iniciar el servidor:', error);
+    console.error(' Error al iniciar el servidor:', error);
     process.exit(1);
   }
 }

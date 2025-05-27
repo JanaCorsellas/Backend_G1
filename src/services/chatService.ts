@@ -9,6 +9,7 @@ export const createChatRoom = async (roomData: {
   description?: string;
   participants: string[];
   isGroup?: boolean;
+  groupPictureUrl?: string;
 }): Promise<IChatRoom> => {
   // Convertir los IDs de string a ObjectId
   const participantIds = roomData.participants.map(id => new mongoose.Types.ObjectId(id));
@@ -42,6 +43,7 @@ export const createChatRoom = async (roomData: {
     description: roomData.description,
     participants: participantIds,
     isGroup: roomData.isGroup ?? (participantIds.length > 2),
+    groupPictureUrl: roomData.groupPictureUrl,
     createdAt: new Date()
   });
   
@@ -153,6 +155,33 @@ export const markMessagesAsRead = async (roomId: string, userId: string): Promis
   );
   
   return result.modifiedCount;
+};
+
+export const updateGroupPicture = async (roomId: string, groupPictureUrl: string): Promise<IChatRoom | null> => {
+  try {
+    console.log('Service: Updating group picture');
+    console.log(`Room ID: ${roomId}`);
+    console.log(`Picture URL: ${groupPictureUrl}`);
+
+    const updatedRoom = await ChatRoomModel.findByIdAndUpdate(
+      roomId,
+      { groupPictureUrl },
+      { new: true }
+    ).populate('participants', 'username profilePicture');
+
+    if (updatedRoom) {
+      console.log('Service: Group picture updated successfully');
+      console.log(`Room: ${updatedRoom.name}`);
+      console.log(`New picture URL: ${updatedRoom.groupPictureUrl}`);
+    } else {
+      console.log('Service: Room not found');
+    }
+
+    return updatedRoom;
+  } catch (error) {
+    console.error('Service: Error updating group picture:', error);
+    throw new Error(`Failed to update group picture: ${error}`);
+  }
 };
 
 // Eliminar una sala de chat

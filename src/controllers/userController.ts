@@ -1,12 +1,12 @@
-// src/controllers/userController.ts - Versión corregida
+// src/controllers/userController.ts - Completo con Cloudinary
 import { Request, Response } from 'express';
 import User from '../models/user';
 import { deleteActivity } from '../services/activityService';
 import bcrypt from 'bcrypt';
 import * as userService from '../services/userService';
 import mongoose from 'mongoose';
-import fs from 'fs';
-import path from 'path';
+import { cloudinary } from '../config/cloudinary';
+import { extractPublicIdFromUrl } from '../middleware/cloudinaryUpload';
 
 /**
  * Crear un nou usuari
@@ -239,112 +239,124 @@ export const deleteUser = async (req: Request, res: Response): Promise<void> => 
       }
 };
 
-// ✅ MEJORADO: Función para subir imagen de perfil con mejor logging
-export const uploadProfilePicture = async (req: Request, res: Response): Promise<void> => {
+
+export const uploadProfilePictureCloudinary = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.params.userId;
     
-    console.log('=== UPLOAD REQUEST ===');
-    console.log(`User ID: ${userId}`);
-    console.log(`Files received: ${req.files ? Object.keys(req.files).length : 0}`);
-    console.log(`File received: ${req.file ? 'YES' : 'NO'}`);
+
     
-    if (req.file) {
-      console.log('File details:');
-      console.log(`  Original name: ${req.file.originalname}`);
-      console.log(`  MIME type: ${req.file.mimetype}`);
-      console.log(`  Size: ${req.file.size} bytes`);
-      console.log(`  Field name: ${req.file.fieldname}`);
-      console.log(`  Filename: ${req.file.filename}`);
-      console.log(`  Path: ${req.file.path}`);
-    }
+    // Verificar configuración de Cloudinary ANTES del upload
+    const { cloudinary } = require('../config/cloudinary');
+    const cloudConfig = cloudinary.config();
+   
     
-    if (!req.file) {
-      console.log('❌ No file received in request');
-      res.status(400).json({ 
-        message: 'No se proporcionó ningún archivo',
+    if (!cloudConfig.cloud_name || !cloudConfig.api_key || !cloudConfig.api_secret) {
+    
+      res.status(500).json({ 
+        message: 'Cloudinary configuration error',
         debug: {
-          headers: req.headers,
-          body: req.body,
-          files: req.files
+          cloud_name: cloudConfig.cloud_name || 'MISSING',
+          api_key: cloudConfig.api_key ? 'SET' : 'MISSING',
+          api_secret: cloudConfig.api_secret ? 'SET' : 'MISSING'
         }
       });
       return;
     }
     
+    if (req.file) {
+    
+    }
+    
+    if (!req.file) {
+      console.log(' No file received in request');
+      res.status(400).json({ 
+        message: 'No se proporcionó ningún archivo'
+      });
+      return;
+    }
+    
     // Verificar que el usuario existe
+    console.log(' Looking for user...');
     const user = await User.findById(userId);
     if (!user) {
-      console.log(`❌ User not found: ${userId}`);
-      // Eliminar el archivo subido si el usuario no existe
-      if (fs.existsSync(req.file.path)) {
-        fs.unlinkSync(req.file.path);
+    
+      
+      // Eliminar la imagen de Cloudinary si el usuario no existe
+      try {
+        await cloudinary.uploader.destroy((req.file as any).filename);
+        console.log(' Image deleted from Cloudinary due to user not found');
+      } catch (cloudError) {
+        console.error('Error deleting image from Cloudinary:', cloudError);
       }
+      
       res.status(404).json({ message: 'Usuario no encontrado' });
       return;
     }
     
-    console.log(`✅ User found: ${user.username}`);
-    
-    // Eliminar la imagen anterior si existe
-    if (user.profilePicture) {
-      const oldImagePath = path.join(process.cwd(), user.profilePicture);
-      if (fs.existsSync(oldImagePath)) {
-        fs.unlinkSync(oldImagePath);
-        console.log(`🗑️ Old image deleted: ${oldImagePath}`);
+    // Eliminar la imagen anterior de Cloudinary si existe
+    if (user.profilePicture && user.profilePicture.includes('cloudinary.com')) {
+      try {
+        const { extractPublicIdFromUrl } = require('../middleware/cloudinaryUpload');
+        const oldPublicId = extractPublicIdFromUrl(user.profilePicture);
+        console.log(` Attempting to delete old image: ${oldPublicId}`);
+        if (oldPublicId) {
+          const deleteResult = await cloudinary.uploader.destroy(oldPublicId);
+          console.log(` Delete result:`, deleteResult);
+        }
+      } catch (deleteError) {
+        console.error(' Error deleting old image (continuing anyway):', deleteError);
       }
     }
     
-    // Actualizar la ruta de la imagen en la base de datos
-    const imagePath = req.file.path.replace(/\\/g, '/'); // Normalizar separadores de ruta
-    user.profilePicture = imagePath;
+    // Actualizar la URL de la imagen en la base de datos
+    const cloudinaryUrl = (req.file as any).path; // URL completa de Cloudinary
+    
+    
+    user.profilePicture = cloudinaryUrl;
     await user.save();
     
-    // Construir URL completa
-    const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
-    const profilePictureUrl = `${baseUrl}/${imagePath}`;
-    
-    console.log(`✅ Image uploaded successfully:`);
-    console.log(`  Path: ${imagePath}`);
-    console.log(`  URL: ${profilePictureUrl}`);
+
     
     res.status(200).json({
-      message: 'Imagen de perfil subida exitosamente',
-      profilePicture: imagePath,
-      profilePictureUrl: profilePictureUrl,
-      debug: {
+      message: 'Imagen de perfil subida exitosamente a Cloudinary',
+      profilePicture: cloudinaryUrl,
+      profilePictureUrl: cloudinaryUrl,
+      cloudinaryData: {
+        publicId: (req.file as any).filename,
         originalName: req.file.originalname,
-        mimeType: req.file.mimetype,
         size: req.file.size,
-        filename: req.file.filename
+        format: (req.file as any).format || 'auto'
       }
     });
   } catch (error: any) {
-    console.error('❌ Error uploading profile picture:', error);
+    console.error(' FATAL ERROR in uploadProfilePictureCloudinary:', error);
+    console.error(' Error stack:', error.stack);
     
-    // Limpiar el archivo en caso de error
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-      console.log(`🗑️ Cleanup: Deleted file after error`);
+    // Limpiar Cloudinary en caso de error
+    if (req.file && (req.file as any).filename) {
+      try {
+        const { cloudinary } = require('../config/cloudinary');
+        await cloudinary.uploader.destroy((req.file as any).filename);
+        console.log('🗑️ Cleanup: Deleted file from Cloudinary after error');
+      } catch (cleanupError) {
+        console.error('Error during Cloudinary cleanup:', cleanupError);
+      }
     }
     
     res.status(500).json({ 
-      message: 'Error subiendo imagen de perfil',
+      message: 'Error subiendo imagen de perfil a Cloudinary',
       error: error.message,
       debug: {
-        stack: error.stack,
-        file: req.file ? {
-          originalname: req.file.originalname,
-          mimetype: req.file.mimetype,
-          size: req.file.size
-        } : null
+        errorType: error.constructor.name,
+        stack: error.stack
       }
     });
   }
 };
 
-// ✅ CORREGIDO: Función para eliminar imagen de perfil 
-export const deleteProfilePicture = async (req: Request, res: Response): Promise<void> => {
+
+export const deleteProfilePictureCloudinary = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.params.userId;
     
@@ -353,13 +365,12 @@ export const deleteProfilePicture = async (req: Request, res: Response): Promise
     
     const user = await User.findById(userId);
     if (!user) {
-      console.log(`❌ User not found: ${userId}`);
+      console.log(` User not found: ${userId}`);
       res.status(404).json({ message: 'Usuario no encontrado' });
       return;
     }
     
-    console.log(`✅ User found: ${user.username}`);
-    console.log(`Current profile picture: ${user.profilePicture}`);
+    
     
     if (!user.profilePicture) {
       console.log(`⚠️ User has no profile picture to delete`);
@@ -367,36 +378,57 @@ export const deleteProfilePicture = async (req: Request, res: Response): Promise
       return;
     }
     
-    // Guardar la ruta de la imagen antes de eliminarla de la BD
+    // Guardar la URL anterior para logging
     const oldProfilePicture = user.profilePicture;
+    let cloudinaryDeleted = false;
+    let publicId = '';
     
-    // ✅ PASO 1: Primero eliminar la referencia de la base de datos
-    user.profilePicture = undefined;
-    await user.save();
-    
-    console.log(`✅ Profile picture reference removed from database`);
-    console.log(`Updated user profilePicture field: ${user.profilePicture}`);
-    
-    // ✅ PASO 2: Después eliminar el archivo del sistema de archivos
-    const imagePath = path.join(process.cwd(), oldProfilePicture);
-    console.log(`Attempting to delete file: ${imagePath}`);
-    
-    if (fs.existsSync(imagePath)) {
+    // VERIFICAR SI ES UNA URL DE CLOUDINARY O UNA URL LOCAL ANTIGUA
+    if (user.profilePicture.includes('cloudinary.com')) {
+      
+      
       try {
-        fs.unlinkSync(imagePath);
-        console.log(`✅ File deleted successfully: ${imagePath}`);
-      } catch (fileError) {
-        console.error(`❌ Error deleting file: ${fileError}`);
-        // No fallar si no se puede eliminar el archivo físico
+        const { extractPublicIdFromUrl } = require('../middleware/cloudinaryUpload');
+        const { cloudinary } = require('../config/cloudinary');
+        
+        publicId = extractPublicIdFromUrl(user.profilePicture);
+       
+        
+        if (publicId) {
+          const result = await cloudinary.uploader.destroy(publicId);
+          
+          
+          if (result.result === 'ok') {
+            cloudinaryDeleted = true;
+            
+          } else {
+            
+          }
+        }
+      } catch (cloudinaryError) {
+        console.error(` Error deleting from Cloudinary:`, cloudinaryError);
+        // No fallar completamente, continuar con la limpieza de BD
       }
+    } else if (user.profilePicture.startsWith('uploads/')) {
+      // ⚠️ Es una URL local antigua - solo limpiar de BD
+      
+      
+      cloudinaryDeleted = false; // No estaba en Cloudinary
+      publicId = 'N/A (local file)';
     } else {
-      console.log(`⚠️ File does not exist: ${imagePath}`);
+    
+      
+      publicId = 'Unknown format';
     }
     
-    // ✅ PASO 3: Obtener el usuario actualizado de la base de datos para confirmar
+    // PASO 1: Eliminar referencia de la base de datos (SIEMPRE)
+    user.profilePicture = undefined;
+    await user.save();
+ 
+    
+    // PASO 2: Obtener usuario actualizado para confirmar
     const refreshedUser = await User.findById(userId).select('-password');
     
-    // ✅ Respuesta con información detallada
     res.status(200).json({
       message: 'Imagen de perfil eliminada exitosamente',
       success: true,
@@ -404,24 +436,29 @@ export const deleteProfilePicture = async (req: Request, res: Response): Promise
         id: refreshedUser!._id,
         username: refreshedUser!.username,
         profilePicture: refreshedUser!.profilePicture, // Debería ser undefined/null
-        profilePictureUrl: refreshedUser!.profilePictureUrl // También debería ser null
+        profilePictureUrl: null // También null después de la eliminación
+      },
+      cloudinary: {
+        wasCloudinaryImage: oldProfilePicture.includes('cloudinary.com'),
+        deleted: cloudinaryDeleted,
+        publicId: publicId,
+        previousUrl: oldProfilePicture
       },
       debug: {
-        fileDeleted: !fs.existsSync(imagePath),
-        previousPath: oldProfilePicture,
-        currentPath: refreshedUser!.profilePicture,
-        databaseUpdated: refreshedUser!.profilePicture === undefined || refreshedUser!.profilePicture === null
+        urlType: oldProfilePicture.includes('cloudinary.com') ? 'cloudinary' : 
+                 oldProfilePicture.startsWith('uploads/') ? 'local_old' : 'unknown',
+        databaseUpdated: refreshedUser!.profilePicture === undefined || refreshedUser!.profilePicture === null,
+        cloudinaryDeleted: cloudinaryDeleted
       }
     });
   } catch (error: any) {
-    console.error('❌ Error deleting profile picture:', error);
+    console.error(' Error deleting profile picture:', error);
     res.status(500).json({ 
       message: 'Error eliminando imagen de perfil',
       error: error.message
     });
   }
 };
-
 /**
  * Alternar visibilitat d'un usuari
  */
@@ -489,8 +526,10 @@ export const searchUsers = async (req: Request, res: Response) => {
     }
 
   try {
-    const users = await userService.findUsersByQuery(query);
-    if (users.length === 0) {
+
+    const users = await userService.findUsersByQuery(query) as unknown as any[];
+    if (!users || users.length === 0) {
+
       res.status(404).json({ message: 'No se encontraron usuarios' });
       return;
     }
@@ -502,4 +541,12 @@ export const searchUsers = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Error interno del servidor' });
     return;
   }
+
 };
+
+
+export const uploadProfilePicture = uploadProfilePictureCloudinary;
+export const deleteProfilePicture = deleteProfilePictureCloudinary;
+
+
+
