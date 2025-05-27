@@ -1,6 +1,6 @@
 import express from 'express';
 import * as userController from '../controllers/userController';
-import { uploadProfilePicture } from '../middleware/upload';
+import { uploadProfilePictureCloudinary } from '../middleware/cloudinaryUpload'; 
 
 const router = express.Router();
 
@@ -26,7 +26,7 @@ const router = express.Router();
  *           description: Contrasenya d'autentificació de l'usuari
  *         profilePicture:
  *           type: string
- *           description: Ruta del archivo de imagen de perfil
+ *           description: URL completa de Cloudinary de la imagen de perfil
  *         bio:
  *           type: string
  *           description: Biografía definida de l'usuari
@@ -71,7 +71,7 @@ const router = express.Router();
  *         username: Corredor44858
  *         email: nosequeficar@strava.es
  *         password: e%4e488585u4u€3|
- *         profilePicture: uploads/profile-pictures/userId_timestamp.jpg
+ *         profilePicture: https://res.cloudinary.com/dz1gi6amk/image/upload/v1647875123/profile_pictures/user_60d5ecb74d2dbb001f645a7c_1647875123456.jpg
  *         bio:
  *         level: 5
  *         totalDistance: 567
@@ -157,6 +157,47 @@ router.post('/login', userController.loginUser);
 
 /**
  * @openapi
+ * /api/users/search:
+ *   get:
+ *     summary: Buscar usuarios por nombre de usuario
+ *     tags: [Users]
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Nombre de usuario a buscar
+ *     responses:
+ *       200:
+ *         description: Lista de usuarios encontrados
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 users:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                       username:
+ *                         type: string
+ *                       profilePicture:
+ *                         type: string
+ *                       level:
+ *                         type: integer
+ *       400:
+ *         description: El parámetro de búsqueda es obligatorio
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.get('/search',userController.searchUsers);
+
+/**
+ * @openapi
  * /api/users:
  *   get:
  *     summary: Get users
@@ -211,8 +252,8 @@ router.get('/:id', userController.getUserById);
  * @openapi
  * /api/users/{userId}/profile-picture:
  *   post:
- *     summary: Upload profile picture
- *     description: Sube una imagen de perfil para un usuario específico. Solo acepta archivos de imagen (JPG, PNG, GIF, etc.) con un tamaño máximo de 5MB.
+ *     summary: Upload profile picture to Cloudinary
+ *     description: Sube una imagen de perfil a Cloudinary para un usuario específico. La imagen se optimiza automáticamente (500x500px, calidad auto, enfoque en cara). Acepta JPG, PNG, GIF, WebP, BMP con un tamaño máximo de 10MB.
  *     tags: [Users]
  *     parameters:
  *       - in: path
@@ -234,13 +275,13 @@ router.get('/:id', userController.getUserById);
  *               profilePicture:
  *                 type: string
  *                 format: binary
- *                 description: Archivo de imagen (JPG, PNG, GIF, etc.) - Máximo 5MB
+ *                 description: Archivo de imagen - Se optimizará automáticamente a 500x500px con enfoque en cara
  *           encoding:
  *             profilePicture:
  *               contentType: image/*
  *     responses:
  *       200:
- *         description: Imagen de perfil subida exitosamente
+ *         description: Imagen subida exitosamente a Cloudinary
  *         content:
  *           application/json:
  *             schema:
@@ -248,13 +289,28 @@ router.get('/:id', userController.getUserById);
  *               properties:
  *                 message:
  *                   type: string
- *                   example: "Imagen de perfil subida exitosamente"
+ *                   example: "Imagen de perfil subida exitosamente a Cloudinary"
  *                 profilePicture:
  *                   type: string
- *                   example: "uploads/profile-pictures/60d5ecb74d2dbb001f645a7c_1647875123456.jpg"
+ *                   example: "https://res.cloudinary.com/dz1gi6amk/image/upload/v1647875123/profile_pictures/user_60d5ecb74d2dbb001f645a7c_1647875123456.jpg"
  *                 profilePictureUrl:
  *                   type: string
- *                   example: "http://localhost:3000/uploads/profile-pictures/60d5ecb74d2dbb001f645a7c_1647875123456.jpg"
+ *                   example: "https://res.cloudinary.com/dz1gi6amk/image/upload/v1647875123/profile_pictures/user_60d5ecb74d2dbb001f645a7c_1647875123456.jpg"
+ *                 cloudinaryData:
+ *                   type: object
+ *                   properties:
+ *                     publicId:
+ *                       type: string
+ *                       example: "profile_pictures/user_60d5ecb74d2dbb001f645a7c_1647875123456"
+ *                     originalName:
+ *                       type: string
+ *                       example: "mi_foto.jpg"
+ *                     size:
+ *                       type: number
+ *                       example: 2048576
+ *                     format:
+ *                       type: string
+ *                       example: "jpg"
  *       400:
  *         description: Error en la petición
  *         content:
@@ -272,49 +328,25 @@ router.get('/:id', userController.getUserById);
  *                 invalid_file:
  *                   summary: Archivo inválido
  *                   value:
- *                     message: "Solo se permiten archivos de imagen"
+ *                     message: "Solo se permiten archivos de imagen (JPG, PNG, GIF, WebP, BMP)"
  *       404:
  *         description: Usuario no encontrado
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Usuario no encontrado"
  *       413:
- *         description: Archivo demasiado grande
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "File too large"
+ *         description: Archivo demasiado grande (>10MB)
  *       500:
  *         description: Error interno del servidor
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Error subiendo imagen de perfil"
  */
 router.post('/:userId/profile-picture', 
-  uploadProfilePicture.single('profilePicture'), 
-  userController.uploadProfilePicture
+  uploadProfilePictureCloudinary.single('profilePicture'), 
+  userController.uploadProfilePictureCloudinary 
 );
 
 /**
  * @openapi
  * /api/users/{userId}/profile-picture:
  *   delete:
- *     summary: Delete profile picture
- *     description: Elimina la imagen de perfil actual del usuario
+ *     summary: Delete profile picture from Cloudinary
+ *     description: Elimina la imagen de perfil del usuario tanto de Cloudinary como de la base de datos
  *     tags: [Users]
  *     parameters:
  *       - in: path
@@ -326,7 +358,7 @@ router.post('/:userId/profile-picture',
  *         example: "60d5ecb74d2dbb001f645a7c"
  *     responses:
  *       200:
- *         description: Imagen de perfil eliminada exitosamente
+ *         description: Imagen eliminada exitosamente de Cloudinary
  *         content:
  *           application/json:
  *             schema:
@@ -335,38 +367,44 @@ router.post('/:userId/profile-picture',
  *                 message:
  *                   type: string
  *                   example: "Imagen de perfil eliminada exitosamente"
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     username:
+ *                       type: string
+ *                     profilePicture:
+ *                       type: string
+ *                       nullable: true
+ *                       example: null
+ *                     profilePictureUrl:
+ *                       type: string
+ *                       nullable: true
+ *                       example: null
+ *                 cloudinary:
+ *                   type: object
+ *                   properties:
+ *                     deleted:
+ *                       type: boolean
+ *                       example: true
+ *                     publicId:
+ *                       type: string
+ *                       example: "profile_pictures/user_60d5ecb74d2dbb001f645a7c_1647875123456"
+ *                     previousUrl:
+ *                       type: string
+ *                       example: "https://res.cloudinary.com/dz1gi6amk/image/upload/..."
  *       400:
  *         description: El usuario no tiene imagen de perfil
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "El usuario no tiene imagen de perfil"
  *       404:
  *         description: Usuario no encontrado
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Usuario no encontrado"
  *       500:
  *         description: Error interno del servidor
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Error eliminando imagen de perfil"
  */
-router.delete('/:userId/profile-picture', userController.deleteProfilePicture);
+router.delete('/:userId/profile-picture', userController.deleteProfilePictureCloudinary); 
 
 /**
  * @openapi
@@ -457,37 +495,5 @@ router.delete('/:id', userController.deleteUser);
  *         description: Error toggling user visibility
  */
 router.put('/:id/toggle-visibility', userController.toggleUserVisibility);
-
-/**
- * @openapi
- * /uploads/{imagePath}:
- *   get:
- *     summary: Serve profile picture
- *     description: Sirve una imagen de perfil específica. Esta ruta es servida por Express como archivo estático.
- *     tags: [Users]
- *     parameters:
- *       - in: path
- *         name: imagePath
- *         required: true
- *         schema:
- *           type: string
- *         description: Ruta de la imagen (sin 'uploads/')
- *         example: "profile-pictures/60d5ecb74d2dbb001f645a7c_1647875123456.jpg"
- *     responses:
- *       200:
- *         description: Imagen servida exitosamente
- *         content:
- *           image/*:
- *             schema:
- *               type: string
- *               format: binary
- *       404:
- *         description: Imagen no encontrada
- *         content:
- *           text/html:
- *             schema:
- *               type: string
- *               example: "Cannot GET /uploads/profile-pictures/nonexistent.jpg"
- */
 
 export default router;

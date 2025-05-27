@@ -170,3 +170,7 @@ export const toggleUserVisibility = async (userId: string): Promise<IUser | null
     return null;
   }
 };
+
+export function findUsersByQuery(query: string) {
+  throw new Error('Function not implemented.');
+}
