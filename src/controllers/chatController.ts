@@ -145,25 +145,46 @@ export const markMessagesAsReadController = async (req: Request, res: Response) 
   }
 };
 
-export const updateGroupPictureController = async (req: Request, res: Response) => {
+export const updateGroupPictureController = async (req: Request, res: Response): Promise<void> => {
   try {
     const roomId = req.params.id;
     const { groupPictureUrl } = req.body;
 
+    console.log('Updating group picture for room:', roomId);
+    console.log('New picture URL:', groupPictureUrl);
+
     if (!groupPictureUrl) {
-      return res.status(400).json({ message: 'Se requiere groupPictureUrl' });
+      console.log('No groupPictureUrl provided');
+      res.status(400).json({ message: 'Se requiere groupPictureUrl' });
+      return;
     }
 
     const updatedRoom = await chatService.updateGroupPicture(roomId, groupPictureUrl);
 
     if (!updatedRoom) {
-      return res.status(404).json({ message: 'Sala no encontrada' });
+      console.log('Room not found:', roomId);
+      res.status(404).json({ message: 'Sala no encontrada' });
+      return;
     }
 
-    res.status(200).json(updatedRoom);
+    console.log('Group picture updated successfully');
+    console.log('Updated room:', {
+      id: updatedRoom._id,
+      name: updatedRoom.name,
+      groupPictureUrl: updatedRoom.groupPictureUrl
+    });
+
+    res.status(200).json({
+      message: 'Imagen de grupo actualizada exitosamente',
+      room: updatedRoom,
+      groupPictureUrl: updatedRoom.groupPictureUrl
+    });
   } catch (error: any) {
     console.error('Error al actualizar la imagen del grupo:', error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ 
+      message: 'Error interno del servidor',
+      error: error.message 
+    });
   }
 };
 

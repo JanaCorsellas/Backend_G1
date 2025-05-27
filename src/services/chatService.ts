@@ -158,12 +158,30 @@ export const markMessagesAsRead = async (roomId: string, userId: string): Promis
 };
 
 export const updateGroupPicture = async (roomId: string, groupPictureUrl: string): Promise<IChatRoom | null> => {
-  const updatedRoom = await ChatRoomModel.findByIdAndUpdate(
-    roomId,
-    { groupPictureUrl },
-    { new: true }
-  );
-  return updatedRoom;
+  try {
+    console.log('Service: Updating group picture');
+    console.log(`Room ID: ${roomId}`);
+    console.log(`Picture URL: ${groupPictureUrl}`);
+
+    const updatedRoom = await ChatRoomModel.findByIdAndUpdate(
+      roomId,
+      { groupPictureUrl },
+      { new: true }
+    ).populate('participants', 'username profilePicture');
+
+    if (updatedRoom) {
+      console.log('Service: Group picture updated successfully');
+      console.log(`Room: ${updatedRoom.name}`);
+      console.log(`New picture URL: ${updatedRoom.groupPictureUrl}`);
+    } else {
+      console.log('Service: Room not found');
+    }
+
+    return updatedRoom;
+  } catch (error) {
+    console.error('Service: Error updating group picture:', error);
+    throw new Error(`Failed to update group picture: ${error}`);
+  }
 };
 
 // Eliminar una sala de chat

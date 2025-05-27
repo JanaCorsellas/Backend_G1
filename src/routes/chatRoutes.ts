@@ -203,6 +203,7 @@ router.post('/messages', async (req, res) => {
 router.post('/messages/read', async (req, res) => {
   await chatController.markMessagesAsReadController(req, res);
 });
+
 /**
  * @openapi
  * /api/chat/rooms/{id}/group-picture:
@@ -218,18 +219,30 @@ router.post('/messages/read', async (req, res) => {
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             required:
- *               - groupPictureUrl
+ *               - groupPicture
  *             properties:
- *               groupPictureUrl:
+ *               groupPicture:
  *                 type: string
- *                 description: New URL for the group picture
+ *                 format: binary
+ *                 description: Group picture image file
  *     responses:
  *       200:
  *         description: Group picture updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 _id:
+ *                   type: string
+ *                 name:
+ *                   type: string
+ *                 groupPictureUrl:
+ *                   type: string
  *       400:
  *         description: Invalid input
  *       404:
@@ -239,13 +252,35 @@ router.post('/messages/read', async (req, res) => {
  */
 router.patch(
   '/rooms/:id/group-picture',
-  uploadGroupPictureCloudinary.single('groupPicture'), // <-- Use the middleware here
-  async (req, res) => {
-    // Set the uploaded file URL in the body for the controller
-    if (req.file && req.file.path) {
-      req.body.groupPictureUrl = req.file.path;
+  uploadGroupPictureCloudinary.single('groupPicture'),
+  async (req, res): Promise<void> => {
+    try {
+      console.log('Group picture upload request received');
+      console.log(`Room ID: ${req.params.id}`);
+      console.log(`File received: ${req.file ? 'Yes' : 'No'}`);
+      
+      if (req.file) {
+        console.log(`File details:`, {
+          filename: req.file.filename,
+          originalname: req.file.originalname,
+          path: req.file.path,
+          size: req.file.size,
+          mimetype: req.file.mimetype
+        });
+        
+        // Set the uploaded file URL in the body for the controller
+        req.body.groupPictureUrl = req.file.path;
+      } else {
+        console.log('No file received in upload request');
+        res.status(400).json({ message: 'No se recibió ningún archivo' });
+        return; // Explicit return without value
+      }
+      
+      await chatController.updateGroupPictureController(req, res);
+    } catch (error) {
+      console.error('Error in group picture upload route:', error);
+      res.status(500).json({ message: 'Error interno del servidor' });
     }
-    await chatController.updateGroupPictureController(req, res);
   }
 );
 
