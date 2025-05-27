@@ -1,9 +1,12 @@
+// src/controllers/userController.ts - Versión corregida
 import { Request, Response } from 'express';
 import User from '../models/user';
 import { deleteActivity } from '../services/activityService';
 import bcrypt from 'bcrypt';
 import * as userService from '../services/userService';
 import mongoose from 'mongoose';
+import fs from 'fs';
+import path from 'path';
 
 /**
  * Crear un nou usuari
@@ -234,6 +237,189 @@ export const deleteUser = async (req: Request, res: Response): Promise<void> => 
       } catch(err:any){
           res.status(500).json({message:"Server error: ", err});
       }
+};
+
+// ✅ MEJORADO: Función para subir imagen de perfil con mejor logging
+export const uploadProfilePicture = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.params.userId;
+    
+    console.log('=== UPLOAD REQUEST ===');
+    console.log(`User ID: ${userId}`);
+    console.log(`Files received: ${req.files ? Object.keys(req.files).length : 0}`);
+    console.log(`File received: ${req.file ? 'YES' : 'NO'}`);
+    
+    if (req.file) {
+      console.log('File details:');
+      console.log(`  Original name: ${req.file.originalname}`);
+      console.log(`  MIME type: ${req.file.mimetype}`);
+      console.log(`  Size: ${req.file.size} bytes`);
+      console.log(`  Field name: ${req.file.fieldname}`);
+      console.log(`  Filename: ${req.file.filename}`);
+      console.log(`  Path: ${req.file.path}`);
+    }
+    
+    if (!req.file) {
+      console.log('❌ No file received in request');
+      res.status(400).json({ 
+        message: 'No se proporcionó ningún archivo',
+        debug: {
+          headers: req.headers,
+          body: req.body,
+          files: req.files
+        }
+      });
+      return;
+    }
+    
+    // Verificar que el usuario existe
+    const user = await User.findById(userId);
+    if (!user) {
+      console.log(`❌ User not found: ${userId}`);
+      // Eliminar el archivo subido si el usuario no existe
+      if (fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+      res.status(404).json({ message: 'Usuario no encontrado' });
+      return;
+    }
+    
+    console.log(`✅ User found: ${user.username}`);
+    
+    // Eliminar la imagen anterior si existe
+    if (user.profilePicture) {
+      const oldImagePath = path.join(process.cwd(), user.profilePicture);
+      if (fs.existsSync(oldImagePath)) {
+        fs.unlinkSync(oldImagePath);
+        console.log(`🗑️ Old image deleted: ${oldImagePath}`);
+      }
+    }
+    
+    // Actualizar la ruta de la imagen en la base de datos
+    const imagePath = req.file.path.replace(/\\/g, '/'); // Normalizar separadores de ruta
+    user.profilePicture = imagePath;
+    await user.save();
+    
+    // Construir URL completa
+    const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+    const profilePictureUrl = `${baseUrl}/${imagePath}`;
+    
+    console.log(`✅ Image uploaded successfully:`);
+    console.log(`  Path: ${imagePath}`);
+    console.log(`  URL: ${profilePictureUrl}`);
+    
+    res.status(200).json({
+      message: 'Imagen de perfil subida exitosamente',
+      profilePicture: imagePath,
+      profilePictureUrl: profilePictureUrl,
+      debug: {
+        originalName: req.file.originalname,
+        mimeType: req.file.mimetype,
+        size: req.file.size,
+        filename: req.file.filename
+      }
+    });
+  } catch (error: any) {
+    console.error('❌ Error uploading profile picture:', error);
+    
+    // Limpiar el archivo en caso de error
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+      console.log(`🗑️ Cleanup: Deleted file after error`);
+    }
+    
+    res.status(500).json({ 
+      message: 'Error subiendo imagen de perfil',
+      error: error.message,
+      debug: {
+        stack: error.stack,
+        file: req.file ? {
+          originalname: req.file.originalname,
+          mimetype: req.file.mimetype,
+          size: req.file.size
+        } : null
+      }
+    });
+  }
+};
+
+// ✅ CORREGIDO: Función para eliminar imagen de perfil 
+export const deleteProfilePicture = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.params.userId;
+    
+    console.log(`=== DELETE PROFILE PICTURE ===`);
+    console.log(`User ID: ${userId}`);
+    
+    const user = await User.findById(userId);
+    if (!user) {
+      console.log(`❌ User not found: ${userId}`);
+      res.status(404).json({ message: 'Usuario no encontrado' });
+      return;
+    }
+    
+    console.log(`✅ User found: ${user.username}`);
+    console.log(`Current profile picture: ${user.profilePicture}`);
+    
+    if (!user.profilePicture) {
+      console.log(`⚠️ User has no profile picture to delete`);
+      res.status(400).json({ message: 'El usuario no tiene imagen de perfil' });
+      return;
+    }
+    
+    // Guardar la ruta de la imagen antes de eliminarla de la BD
+    const oldProfilePicture = user.profilePicture;
+    
+    // ✅ PASO 1: Primero eliminar la referencia de la base de datos
+    user.profilePicture = undefined;
+    await user.save();
+    
+    console.log(`✅ Profile picture reference removed from database`);
+    console.log(`Updated user profilePicture field: ${user.profilePicture}`);
+    
+    // ✅ PASO 2: Después eliminar el archivo del sistema de archivos
+    const imagePath = path.join(process.cwd(), oldProfilePicture);
+    console.log(`Attempting to delete file: ${imagePath}`);
+    
+    if (fs.existsSync(imagePath)) {
+      try {
+        fs.unlinkSync(imagePath);
+        console.log(`✅ File deleted successfully: ${imagePath}`);
+      } catch (fileError) {
+        console.error(`❌ Error deleting file: ${fileError}`);
+        // No fallar si no se puede eliminar el archivo físico
+      }
+    } else {
+      console.log(`⚠️ File does not exist: ${imagePath}`);
+    }
+    
+    // ✅ PASO 3: Obtener el usuario actualizado de la base de datos para confirmar
+    const refreshedUser = await User.findById(userId).select('-password');
+    
+    // ✅ Respuesta con información detallada
+    res.status(200).json({
+      message: 'Imagen de perfil eliminada exitosamente',
+      success: true,
+      user: {
+        id: refreshedUser!._id,
+        username: refreshedUser!.username,
+        profilePicture: refreshedUser!.profilePicture, // Debería ser undefined/null
+        profilePictureUrl: refreshedUser!.profilePictureUrl // También debería ser null
+      },
+      debug: {
+        fileDeleted: !fs.existsSync(imagePath),
+        previousPath: oldProfilePicture,
+        currentPath: refreshedUser!.profilePicture,
+        databaseUpdated: refreshedUser!.profilePicture === undefined || refreshedUser!.profilePicture === null
+      }
+    });
+  } catch (error: any) {
+    console.error('❌ Error deleting profile picture:', error);
+    res.status(500).json({ 
+      message: 'Error eliminando imagen de perfil',
+      error: error.message
+    });
+  }
 };
 
 /**
