@@ -1,6 +1,8 @@
 import express from 'express';
 import { Router } from 'express';
 import * as chatController from '../controllers/chatController';
+import { uploadGroupPictureCloudinary } from '../middleware/cloudinaryGroupUpload';
+
 
 const router: Router = express.Router();
 
@@ -24,6 +26,9 @@ const router: Router = express.Router();
  *           type: string
  *         isGroup:
  *           type: boolean
+ *         groupPictureUrl:
+ *           type: string
+ *           description: URL of the group picture
  */
 
 /**
@@ -198,6 +203,51 @@ router.post('/messages', async (req, res) => {
 router.post('/messages/read', async (req, res) => {
   await chatController.markMessagesAsReadController(req, res);
 });
+/**
+ * @openapi
+ * /api/chat/rooms/{id}/group-picture:
+ *   patch:
+ *     summary: Update group picture of a chat room
+ *     tags: [Chat]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - groupPictureUrl
+ *             properties:
+ *               groupPictureUrl:
+ *                 type: string
+ *                 description: New URL for the group picture
+ *     responses:
+ *       200:
+ *         description: Group picture updated
+ *       400:
+ *         description: Invalid input
+ *       404:
+ *         description: Room not found
+ *       500:
+ *         description: Server error
+ */
+router.patch(
+  '/rooms/:id/group-picture',
+  uploadGroupPictureCloudinary.single('groupPicture'), // <-- Use the middleware here
+  async (req, res) => {
+    // Set the uploaded file URL in the body for the controller
+    if (req.file && req.file.path) {
+      req.body.groupPictureUrl = req.file.path;
+    }
+    await chatController.updateGroupPictureController(req, res);
+  }
+);
 
 /**
  * @openapi

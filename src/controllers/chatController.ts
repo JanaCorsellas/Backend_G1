@@ -5,7 +5,7 @@ import { getIO } from '../config/socketConfig';
 // Crear una sala de chat
 export const createChatRoomController = async (req: Request, res: Response) => {
   try {
-    const { name, participants, description, isGroup } = req.body;
+    const { name, participants, description, isGroup, groupPictureUrl } = req.body;
     
     // Validar datos requeridos
     if (!name || !participants || !Array.isArray(participants) || participants.length < 2) {
@@ -16,7 +16,8 @@ export const createChatRoomController = async (req: Request, res: Response) => {
       name,
       participants,
       description,
-      isGroup
+      isGroup,
+      groupPictureUrl
     });
     
     res.status(201).json(chatRoom);
@@ -140,6 +141,28 @@ export const markMessagesAsReadController = async (req: Request, res: Response) 
     });
   } catch (error: any) {
     console.error('Error al marcar mensajes como leídos:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const updateGroupPictureController = async (req: Request, res: Response) => {
+  try {
+    const roomId = req.params.id;
+    const { groupPictureUrl } = req.body;
+
+    if (!groupPictureUrl) {
+      return res.status(400).json({ message: 'Se requiere groupPictureUrl' });
+    }
+
+    const updatedRoom = await chatService.updateGroupPicture(roomId, groupPictureUrl);
+
+    if (!updatedRoom) {
+      return res.status(404).json({ message: 'Sala no encontrada' });
+    }
+
+    res.status(200).json(updatedRoom);
+  } catch (error: any) {
+    console.error('Error al actualizar la imagen del grupo:', error);
     res.status(500).json({ message: error.message });
   }
 };

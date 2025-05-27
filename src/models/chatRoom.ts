@@ -8,6 +8,7 @@ export interface IChatRoom extends Document {
   lastMessage?: string;
   lastMessageTime?: Date;
   isGroup: boolean;
+  groupPictureUrl?: string;
 }
 
 const chatRoomSchema = new Schema<IChatRoom>({
@@ -39,6 +40,10 @@ const chatRoomSchema = new Schema<IChatRoom>({
   isGroup: {
     type: Boolean,
     default: false
+  },
+  groupPictureUrl: {
+    type: String,
+    required: false
   }
 });
 

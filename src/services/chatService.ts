@@ -9,6 +9,7 @@ export const createChatRoom = async (roomData: {
   description?: string;
   participants: string[];
   isGroup?: boolean;
+  groupPictureUrl?: string;
 }): Promise<IChatRoom> => {
   // Convertir los IDs de string a ObjectId
   const participantIds = roomData.participants.map(id => new mongoose.Types.ObjectId(id));
@@ -42,6 +43,7 @@ export const createChatRoom = async (roomData: {
     description: roomData.description,
     participants: participantIds,
     isGroup: roomData.isGroup ?? (participantIds.length > 2),
+    groupPictureUrl: roomData.groupPictureUrl,
     createdAt: new Date()
   });
   
@@ -153,6 +155,15 @@ export const markMessagesAsRead = async (roomId: string, userId: string): Promis
   );
   
   return result.modifiedCount;
+};
+
+export const updateGroupPicture = async (roomId: string, groupPictureUrl: string): Promise<IChatRoom | null> => {
+  const updatedRoom = await ChatRoomModel.findByIdAndUpdate(
+    roomId,
+    { groupPictureUrl },
+    { new: true }
+  );
+  return updatedRoom;
 };
 
 // Eliminar una sala de chat

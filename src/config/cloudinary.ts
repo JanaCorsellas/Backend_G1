@@ -16,7 +16,7 @@ const verifyCloudinaryConfig = () => {
   const { cloud_name, api_key, api_secret } = cloudinary.config();
   
   if (!cloud_name || !api_key || !api_secret) {
-    console.error('❌ ERROR: Faltan credenciales de Cloudinary en las variables de entorno');
+    console.error('ERROR: Faltan credenciales de Cloudinary en las variables de entorno');
     console.error('Asegúrate de tener configuradas:');
     console.error('- CLOUDINARY_CLOUD_NAME');
     console.error('- CLOUDINARY_API_KEY');
@@ -24,7 +24,7 @@ const verifyCloudinaryConfig = () => {
     return false;
   }
   
-  console.log('✅ Cloudinary configurado correctamente');
+  console.log('Cloudinary configurado correctamente');
   console.log(`   Cloud Name: ${cloud_name}`);
   return true;
 };
