@@ -53,12 +53,12 @@ export const createActivity = async (userId: string, activityData: Omit<IActivit
 export const getActivityById = async (activityId: string): Promise<IActivity | null> => {
     return await ActivityModel.findById(activityId).populate('route').populate('musicPlaylist').populate('author');
 };
-/*
+
 // Obtener todas las actividades de un usuario
 export const getActivitiesByUserId = async (userId: string): Promise<IActivity[]> => {
     return await ActivityModel.find({ author: userId }).populate('route').populate('musicPlaylist');
-};*/
-export const getActivitiesByUserIdPaginated = async (
+};
+/*export const getActivitiesByUserIdPaginated = async (
   userId: string,
   page: number = 1,
   limit: number = 4
@@ -85,7 +85,7 @@ export const getActivitiesByUserIdPaginated = async (
     totalPages: Math.ceil(totalActivities / limit),
     currentPage: page
   };
-};
+};*/
 // Obtener todas las actividades
 export const getAllActivities = async (): Promise<IActivity[]> => {
     return await ActivityModel.find().populate('route').populate('musicPlaylist').populate('author');

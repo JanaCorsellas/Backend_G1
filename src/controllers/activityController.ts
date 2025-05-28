@@ -1,11 +1,11 @@
 import { 
     createActivity, 
     getActivityById,
-    //getActivitiesByUserId,
+    getActivitiesByUserId,
     getAllActivities,
     updateActivity, 
     deleteActivity, 
-    getActivitiesByUserIdPaginated
+    //getActivitiesByUserIdPaginated
 } from '../services/activityService';
 
 import { Request, Response } from 'express';
@@ -29,7 +29,7 @@ export const getActivityByIdController = async (req: Request, res: Response) => 
         res.status(500).json({ message: error.message });
     }
 };
-/*
+
 export const getActivitiesByUserIdController = async (req: Request, res: Response) => {
     try {
         // Obtenir pàgina i límit dels paràmetres de consulta
@@ -44,8 +44,8 @@ export const getActivitiesByUserIdController = async (req: Request, res: Respons
     catch (error: any) {
         res.status(500).json({ message: error.message });
     }
-};*/
-export const getActivitiesByUserIdController = async (req: Request, res: Response) => {
+};
+/*export const getActivitiesByUserIdController = async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page?.toString() || '1', 10);
     const limit = parseInt(req.query.limit?.toString() || '10', 10);
@@ -59,7 +59,7 @@ export const getActivitiesByUserIdController = async (req: Request, res: Respons
     console.error('Error al obtener actividades paginadas:', error);
     res.status(500).json({ message: error.message });
   }
-};
+};*/
 // Obtenir totes les activitats
 export const getActivitiesHandler = async (req: Request, res: Response) => {
     try {
