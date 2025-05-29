@@ -496,4 +496,33 @@ router.delete('/:id', userController.deleteUser);
  */
 router.put('/:id/toggle-visibility', userController.toggleUserVisibility);
 
+/**
+ * @openapi
+ * /api/users/followers/{id}:
+ *   get:
+ *     summary: Get followers of a user
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: List of follower IDs
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: string
+ *       400:
+ *         description: User ID is required
+ *       500:
+ *         description: Error fetching user followers
+ */
+router.get('/followers/:id', userController.getUserFollowersController);
+
 export default router;

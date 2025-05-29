@@ -1,5 +1,5 @@
 import UserModel, { IUser } from '../models/user';
-import mongoose from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 
 /**
  * Obtenir tots els usuaris
@@ -185,3 +185,7 @@ export const findUsersByQuery = async (search: string) => {
   return users;
 };
 
+export const getUserFollowers = async (userId: string): Promise<Types.ObjectId[]> =>{
+  let user =  await UserModel.findById(userId);
+  return user ? user.followers : [];
+};

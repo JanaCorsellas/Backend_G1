@@ -548,5 +548,20 @@ export const searchUsers = async (req: Request, res: Response) => {
 export const uploadProfilePicture = uploadProfilePictureCloudinary;
 export const deleteProfilePicture = deleteProfilePictureCloudinary;
 
+export const getUserFollowersController = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.params.id;
+    if (!userId) {
+      res.status(400).json({ message: 'User ID is required' });
+      return;
+    }
 
+    const followers = await userService.getUserFollowers(userId);
+
+    res.status(200).json(followers);
+  } catch (error) {
+    console.error('Error fetching user followers:', error);
+    res.status(500).json({ message: 'Error fetching user followers' });
+  }
+}
 

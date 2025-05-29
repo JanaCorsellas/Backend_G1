@@ -75,7 +75,19 @@ const userSchema = new Schema({
     refreshToken: {
         type: String,
         default: null
-    }
+    },
+    followers: [{
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        required: true,
+        default: []        
+    }],
+    following: [{
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        required: true,
+        default: []
+    }],
 }, {
     versionKey: false,
     timestamps: true,
@@ -159,6 +171,8 @@ export interface IUser extends Document {
     visibility: boolean;
     role: 'user' | 'admin';
     refreshToken?: string;
+    followers: Types.ObjectId[];
+    following: Types.ObjectId[];
     
    
     getCloudinaryPublicId(): string | null;
