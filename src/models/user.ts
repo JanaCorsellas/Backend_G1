@@ -41,6 +41,15 @@ const userSchema = new Schema({
         default: 0,
         required: true
     },
+    isPrivate: {
+        type: Boolean,
+        default: false,
+    },
+    friends: [{
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        default: []
+    }],
     activities: [{
         type: Schema.Types.ObjectId,
         ref: 'Activity',
@@ -90,6 +99,8 @@ export interface IUser extends Document {
     level: number;
     totalDistance: number;
     totalTime: number;
+    isPrivate?: boolean;
+    friends?: Types.ObjectId[] 
     activities: Types.ObjectId[];
     achievements: Types.ObjectId[];
     challengesCompleted: Types.ObjectId[];

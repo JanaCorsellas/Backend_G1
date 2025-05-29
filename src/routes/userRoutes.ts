@@ -337,4 +337,6 @@ router.delete('/:id', userController.deleteUser);
  */
 router.put('/:id/toggle-visibility', userController.toggleUserVisibility);
 
+router.get('/public/:id', userController.getUserProfile);
+
 export default router;

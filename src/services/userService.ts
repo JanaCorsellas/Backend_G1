@@ -183,3 +183,38 @@ export const findUsersByQuery = async (search: string) => {
 
   return users;
 };
+
+import User from '../models/User';
+import Friendship from '../models/Friendship';
+
+export const getUserProfileService = async (currentUserId: string, targetUserId: string) => {
+  const targetUser = await User.findById(targetUserId).lean();
+
+  if (!targetUser) {
+    throw new Error('NOT_FOUND');
+  }
+
+  const isSameUser = currentUserId === targetUserId;
+
+  if (targetUser.profilePrivate && !isSameUser) {
+    const friendship = await Friendship.findOne({
+      status: 'accepted',
+      $or: [
+        { requester: currentUserId, recipient: targetUserId },
+        { requester: targetUserId, recipient: currentUserId },
+      ],
+    });
+
+    if (!friendship) {
+      throw new Error('FORBIDDEN');
+    }
+  }
+
+  return {
+    _id: targetUser._id,
+    username: targetUser.username,
+    profilePicture: targetUser.profilePicture,
+    level: targetUser.level,
+    // añdir más datos que quiera ver
+  };
+};

@@ -295,6 +295,9 @@ export const toggleUserVisibility = async (req: Request, res: Response): Promise
   }
 };
 
+/**
+ * Buscador usuaris
+ */
 export const searchUsers = async (req: Request, res: Response) => {
    const query = (req.query.search as string) || '';
     if (query.length < 2) {
@@ -315,5 +318,24 @@ export const searchUsers = async (req: Request, res: Response) => {
     console.error('Error al buscar usuarios:', error);
     res.status(500).json({ message: 'Error interno del servidor' });
     return;
+  }
+};
+
+export const getUserProfile = async (req: Request, res: Response) => {
+  const currentUserId = (req as any).user?._id?.toString();
+  const targetUserId = req.params.userId;
+
+   try {
+    const profileData = await getUserProfile(currentUserId, targetUserId);
+    res.json(profileData);
+  } catch (error: any) {
+    if (error.message === 'NOT_FOUND') {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+    if (error.message === 'FORBIDDEN') {
+      return res.status(403).json({ message: 'Este perfil es privado' });
+    }
+    console.error('Error al obtener perfil:', error);
+    res.status(500).json({ message: 'Error interno del servidor' });
   }
 };
