@@ -41,6 +41,11 @@ const userSchema = new Schema({
         default: 0,
         required: true
     },
+    googleId: {
+        type: String,
+        default: null,
+        required: false
+    },
     activities: [{
         type: Schema.Types.ObjectId,
         ref: 'Activity',
@@ -90,6 +95,7 @@ export interface IUser extends Document {
     level: number;
     totalDistance: number;
     totalTime: number;
+    googleId?: string;
     activities: Types.ObjectId[];
     achievements: Types.ObjectId[];
     challengesCompleted: Types.ObjectId[];
