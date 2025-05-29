@@ -56,7 +56,9 @@ export const loginCtrl = async ({ body }: Request, res: Response) => {
     }
 };
 
-// Lo mismo para el método googleAuthCallback
+// En src/controllers/auth_controller.ts
+// Reemplazar el método googleAuthCallback completo:
+
 export const googleAuthCallback = async (req: Request, res: Response) => {
     try {
         const code = req.query.code as string;
@@ -77,7 +79,7 @@ export const googleAuthCallback = async (req: Request, res: Response) => {
         
         console.log("Autenticación Google exitosa para:", authData.user.email);
         
-        // Crear una página HTML temporal con los datos
+        // ✅ CORREGIDO: Crear una página HTML que guarde correctamente en localStorage
         const resultHtml = `
         <!DOCTYPE html>
         <html>
@@ -132,33 +134,49 @@ export const googleAuthCallback = async (req: Request, res: Response) => {
             </div>
             
             <script>
-                // Guardar datos en localStorage
-                const authData = {
+                console.log('🚀 Procesando datos de Google Auth...');
+                
+                // ✅ CORREGIDO: Definir los datos correctamente
+                const googleAuthData = {
                     token: "${authData.token}",
                     refreshToken: "${authData.refreshToken}",
-                    user: ${JSON.stringify({
-                        _id: authData.user._id,
-                        username: authData.user.username,
-                        email: authData.user.email,
-                        role: authData.user.role,
-                        profilePicture: authData.user.profilePicture,
-                        level: authData.user.level,
-                        googleId: authData.user.googleId
-                    })}
+                    user: {
+                        _id: "${authData.user._id}",
+                        id: "${authData.user._id}",
+                        username: "${authData.user.username}",
+                        email: "${authData.user.email}",
+                        role: "${authData.user.role}",
+                        profilePicture: ${authData.user.profilePicture ? `"${authData.user.profilePicture}"` : 'null'},
+                        level: ${authData.user.level},
+                        googleId: "${authData.user.googleId || ''}"
+                    }
                 };
                 
-                // Guardar en localStorage
-                localStorage.setItem('access_token', authData.token);
-                localStorage.setItem('refresh_token', authData.refreshToken);
-                localStorage.setItem('user', JSON.stringify(authData.user));
-                localStorage.setItem('google_auth_success', 'true');
-                
-                console.log('Datos guardados en localStorage');
-                
-                // Redirigir después de 2 segundos
-                setTimeout(() => {
-                    window.location.href = 'http://localhost:8080';
-                }, 2000);
+                try {
+                    // ✅ CORREGIDO: Guardar con los nombres que espera el frontend
+                    localStorage.setItem('google_auth_data', JSON.stringify(googleAuthData));
+                    localStorage.setItem('google_auth_success', 'true');
+                    
+                    // También guardar en el formato tradicional por compatibilidad
+                    localStorage.setItem('access_token', googleAuthData.token);
+                    localStorage.setItem('refresh_token', googleAuthData.refreshToken);
+                    localStorage.setItem('user', JSON.stringify(googleAuthData.user));
+                    
+                    console.log('✅ Datos guardados en localStorage');
+                    console.log('Token:', googleAuthData.token.substring(0, 20) + '...');
+                    console.log('Usuario:', googleAuthData.user.username);
+                    
+                    // ✅ CORREGIDO: Redirigir a la ruta correcta con un delay más corto
+                    setTimeout(() => {
+                        console.log('🔄 Redirigiendo a la aplicación...');
+                        window.location.href = 'http://localhost:8080/#/user-home';
+                    }, 1500);
+                    
+                } catch (error) {
+                    console.error('❌ Error guardando datos:', error);
+                    alert('Error guardando datos de autenticación');
+                    window.location.href = 'http://localhost:8080?error=storage_error';
+                }
             </script>
         </body>
         </html>
