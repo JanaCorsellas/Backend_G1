@@ -75,6 +75,10 @@ const userSchema = new Schema({
     refreshToken: {
         type: String,
         default: null
+    },
+    fcmToken: {
+        type: String,
+        default: null
     }
 }, {
     versionKey: false,
@@ -159,6 +163,7 @@ export interface IUser extends Document {
     visibility: boolean;
     role: 'user' | 'admin';
     refreshToken?: string;
+    fcmToken?: string;
     
    
     getCloudinaryPublicId(): string | null;

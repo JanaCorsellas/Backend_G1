@@ -2,6 +2,8 @@ import mongoose from 'mongoose';
 import ChatRoomModel, { IChatRoom } from '../models/chatRoom';
 import MessageModel, { IMessage } from '../models/message';
 import { getIO } from '../config/socketConfig';
+import admin from '../config/firebaseAdmin';
+import UserModel from '../models/user';
 
 // Crear una sala de chat
 export const createChatRoom = async (roomData: {
@@ -120,6 +122,33 @@ export const saveMessage = async (messageData: {
   
   if (!populatedMessage) {
     throw new Error('No se encontró el mensaje después de guardarlo');
+  }
+  const chatRoom = await ChatRoomModel.findById(messageData.roomId);
+  if (chatRoom) {
+    const recipients = chatRoom.participants.filter(
+      (id: any) => id.toString() !== messageData.senderId
+    );
+    const users = await UserModel.find({ _id: { $in: recipients } });
+    const tokens = users
+      .map((u: any) => u.fcmToken)
+      .filter((token: string | undefined) => !!token);
+
+    if (tokens.length > 0) {
+      try {
+        await admin.messaging().sendEachForMulticast({
+          tokens,
+          notification: {
+            title: 'Nuevo mensaje',
+            body: messageData.content,
+          },
+          data: {
+            roomId: messageData.roomId,
+          },
+        });
+      } catch (err) {
+        console.error('Error sending FCM notification:', err);
+      }
+    }
   }
   
   return populatedMessage;
