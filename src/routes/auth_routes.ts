@@ -1,12 +1,15 @@
 import express, { Router, Request, Response } from 'express';
+import User from '../models/user';
 import { 
     registerCtrl, 
     loginCtrl, 
     refreshTokenCtrl, 
     logoutCtrl,
+
     googleAuthCtrl, 
     googleAuthCallback ,
     googleAuthTokenCtrl 
+
 } from '../controllers/auth_controller';
 import { checkJwt } from "../middleware/session";
 import { ParamsDictionary } from 'express-serve-static-core';
@@ -237,6 +240,13 @@ router.get('/google', async (req: Request, res: Response) => {
 router.get('/google/callback', async (req: Request, res: Response) => {
     try {
         await googleAuthCallback(req, res);
+    } catch (error) {
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
+router.get("/google/data", async (req: Request, res: Response) => {
+    try {
+        await googleAuthCtrl(req, res);
     } catch (error) {
         res.status(500).json({ message: "Internal server error" });
     }

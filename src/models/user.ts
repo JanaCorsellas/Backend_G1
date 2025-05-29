@@ -1,5 +1,6 @@
 // src/models/user.ts - Actualizado para Cloudinary
 import mongoose, { Schema, Types, Document } from "mongoose";
+import { googleAuth } from "../services/auth_service";
 
 // Schema definition
 const userSchema = new Schema({
@@ -72,6 +73,12 @@ const userSchema = new Schema({
         default: 'user',
         required: true
     },
+     googleId: {        // Add this field
+        type: String,
+        unique: true,
+        sparse: true,  // Allows null/undefined values
+        required: false
+    },
     refreshToken: {
         type: String,
         default: null
@@ -79,7 +86,8 @@ const userSchema = new Schema({
 }, {
     versionKey: false,
     timestamps: true,
-});
+},
+ );
 
 
 userSchema.virtual('profilePictureUrl').get(function() {
@@ -159,7 +167,7 @@ export interface IUser extends Document {
     visibility: boolean;
     role: 'user' | 'admin';
     refreshToken?: string;
-    
+    googleId?: string;
    
     getCloudinaryPublicId(): string | null;
 }

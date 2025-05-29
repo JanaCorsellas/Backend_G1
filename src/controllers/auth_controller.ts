@@ -62,20 +62,113 @@ export const googleAuthCallback = async (req: Request, res: Response) => {
         const code = req.query.code as string;
         
         if (!code) {
-            return res.status(400).json({ message: 'Código de autorización faltante' });
+            console.log("No se recibió código de Google");
+            return res.redirect('http://localhost:8080?error=no_code');
         }
+
+        console.log("Procesando código de Google para web:", code.substring(0, 20) + "...");
 
         const authData = await googleAuth(code);
         
         if (!authData) {
-            return res.redirect('/login?error=authentication_failed');
+            console.log("Error en autenticación con Google");
+            return res.redirect('http://localhost:8080?error=auth_failed');
         }
         
-        // Redirigir al frontend con ambos tokens como parámetros de consulta
-        res.redirect(`http://localhost:4200/?token=${authData.token}&refreshToken=${authData.refreshToken}`);   
+        console.log("Autenticación Google exitosa para:", authData.user.email);
+        
+        // Crear una página HTML temporal con los datos
+        const resultHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Autenticación exitosa</title>
+            <style>
+                body { 
+                    font-family: Arial, sans-serif; 
+                    text-align: center; 
+                    padding: 50px;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    margin: 0;
+                }
+                .container {
+                    background: rgba(255,255,255,0.1);
+                    padding: 40px;
+                    border-radius: 15px;
+                    backdrop-filter: blur(10px);
+                    max-width: 500px;
+                    margin: 0 auto;
+                }
+                .success { 
+                    font-size: 24px; 
+                    margin-bottom: 20px;
+                }
+                .loading {
+                    font-size: 16px;
+                    opacity: 0.8;
+                }
+                .spinner {
+                    width: 30px;
+                    height: 30px;
+                    border: 3px solid rgba(255,255,255,0.3);
+                    border-top: 3px solid white;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                    margin: 20px auto;
+                }
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="success">¡Autenticación con Google exitosa!</div>
+                <div>Bienvenido, ${authData.user.username}</div>
+                <div class="spinner"></div>
+                <div class="loading">Guardando datos y redirigiendo...</div>
+            </div>
+            
+            <script>
+                // Guardar datos en localStorage
+                const authData = {
+                    token: "${authData.token}",
+                    refreshToken: "${authData.refreshToken}",
+                    user: ${JSON.stringify({
+                        _id: authData.user._id,
+                        username: authData.user.username,
+                        email: authData.user.email,
+                        role: authData.user.role,
+                        profilePicture: authData.user.profilePicture,
+                        level: authData.user.level,
+                        googleId: authData.user.googleId
+                    })}
+                };
+                
+                // Guardar en localStorage
+                localStorage.setItem('access_token', authData.token);
+                localStorage.setItem('refresh_token', authData.refreshToken);
+                localStorage.setItem('user', JSON.stringify(authData.user));
+                localStorage.setItem('google_auth_success', 'true');
+                
+                console.log('Datos guardados en localStorage');
+                
+                // Redirigir después de 2 segundos
+                setTimeout(() => {
+                    window.location.href = 'http://localhost:8080';
+                }, 2000);
+            </script>
+        </body>
+        </html>
+        `;
+        
+        res.send(resultHtml);
+        
     } catch (error: any) {
         console.error('Error en callback de Google:', error);
-        res.redirect('/login?error=server_error');
+        res.redirect('http://localhost:8080?error=server_error');
     }
 };
 
@@ -169,8 +262,8 @@ export const googleAuthTokenCtrl = async (req: Request, res: Response) => {
 
         const { email, name, sub: googleId, picture } = response.data;
 
-        // 2. Buscar usuario en base de datos
-        let user = await UserModel.findOne({ email });
+// 2. Buscar usuario en base de datos
+let user = await UserModel.findOne({ email });
 
         // 3. Si no existe, crear nuevo usuario
         if (!user) {
@@ -215,5 +308,6 @@ export const googleAuthTokenCtrl = async (req: Request, res: Response) => {
     } catch (error) {
         console.error("Error al verificar token de Google:", error);
         return res.status(401).json({ message: "Token de Google inválido" });
+
     }
 };
