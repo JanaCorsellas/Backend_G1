@@ -4,6 +4,7 @@ import { OAuth2Client } from 'google-auth-library';
 import axios from "axios";
 import UserModel from "../models/user";
 import { generateRefreshToken, generateToken } from "../utils/jwt.handle";
+import { encrypt } from "../utils/bcrypt.handle";
 
 
 export const registerCtrl = async ({body}: Request, res: Response) => {
@@ -137,83 +138,79 @@ export const logoutCtrl = async (req: Request, res: Response) => {
     }
 };
 
-export const googleAuthCtrl = async(req: Request, res: Response) =>{
-    const redirectUri = process.env.GOOGLE_OAUTH_REDIRECT_URL;
-    if (!redirectUri) {
-        console.error(" ERROR: GOOGLE_OAUTH_REDIRECT_URL no està definida a .env");
-        return res.status(500).json({ message: "Error interno de configuración" });
-    }
-    const rootUrl = 'https://accounts.google.com/o/oauth2/v2/auth';
-    const options = new URLSearchParams({
-        redirect_uri: process.env.GOOGLE_OAUTH_REDIRECT_URL!,
-        client_id: process.env.GOOGLE_CLIENT_ID!,
-        access_type: 'offline',
-        response_type: 'code',
-        prompt: 'consent',
-        scope: 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email openid',
+export const googleAuthCtrl = (req: Request, res: Response) => {
+  const rootUrl = 'https://accounts.google.com/o/oauth2/v2/auth';
+  const options = new URLSearchParams({
+    redirect_uri: process.env.GOOGLE_OAUTH_REDIRECT_URL!,
+    client_id: process.env.GOOGLE_CLIENT_ID!,
+    access_type: 'offline',
+    response_type: 'code',
+    prompt: 'consent',
+    scope: 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email openid',
+  });
+
+  const fullUrl = `${rootUrl}?${options.toString()}`;
+  res.redirect(fullUrl);
+};
+
+export const googleCallbackCtrl = async (req: Request, res: Response) => {
+  const code = req.query.code as string;
+
+  if (!code) {
+    return res.status(400).json({ message: 'Falta el código de Google' });
+  }
+
+  try {
+    const { data: tokenData } = await axios.post('https://oauth2.googleapis.com/token', {
+      code,
+      client_id: process.env.GOOGLE_CLIENT_ID,
+      client_secret: process.env.GOOGLE_CLIENT_SECRET,
+      redirect_uri: process.env.GOOGLE_OAUTH_REDIRECT_URL,
+      grant_type: 'authorization_code',
     });
-    const fullUrl= `${rootUrl}?${options.toString()}`;
-    console.log("Redireccionando a:", fullUrl); 
-    res.redirect(fullUrl);
-}
-export const googleAuthTokenCtrl = async (req: Request, res: Response) => {
-    const { token } = req.body;
 
-    if (!token) {
-        return res.status(400).json({ message: "Falta el token de Google" });
+    const { access_token, id_token } = tokenData;
+
+    const { data: googleUser } = await axios.get('https://www.googleapis.com/oauth2/v1/userinfo', {
+      headers: {
+        Authorization: `Bearer ${access_token}`,
+      },
+    });
+
+    const { email, name, id: googleId, picture } = googleUser;
+
+    let user = await UserModel.findOne({ email });
+
+    if (!user) {
+      const randomPassword = Math.random().toString(36).slice(-8);
+      const hashed = await encrypt(randomPassword);
+
+      user = await UserModel.create({
+        email,
+        username: name,
+        googleId,
+        profilePicture: picture,
+        password: hashed,
+        role: 'user',
+        level: 1,
+        totalDistance: 0,
+        totalTime: 0,
+        activities: [],
+        achievements: [],
+        challengesCompleted: [],
+      });
     }
 
-    try {
-        // 1. Verificar token y obtener información del usuario desde Google
-        const response = await axios.get(`https://oauth2.googleapis.com/tokeninfo?id_token=${token}`);
+    const token = generateToken(user);
+    const refreshToken = generateRefreshToken(user.email);
 
-        const { email, name, sub: googleId, picture } = response.data;
+    user.refreshToken = refreshToken;
+    await user.save();
 
-        // 2. Buscar usuario en base de datos
-        let user = await UserModel.findOne({ email });
-
-        // 3. Si no existe, crear nuevo usuario
-        if (!user) {
-            user = await UserModel.create({
-                email,
-                username: name,
-                googleId,
-                profilePicture: picture,
-                password: Math.random().toString(36).slice(-8), 
-                role: "user",
-                level: 1,
-                totalDistance: 0,
-                totalTime: 0,
-                activities: [],
-                achievements: [],
-                challengesCompleted: [],
-            });
-        }
-
-        // 4. Generar tokens
-        const accessToken = generateToken(user);
-        const refreshToken = generateRefreshToken(user.email);
-
-        // 5. Save refresh token to user document
-        user.refreshToken = refreshToken;
-        await user.save();
-
-        // 6. Return response
-        return res.json({
-            token: accessToken,
-            refreshToken,
-            user: {
-                _id: user._id,
-                username: user.username,
-                email: user.email,
-                role: user.role,
-                profilePicture: user.profilePicture,
-                level: user.level
-            },
-        });
-
-    } catch (error) {
-        console.error("Error al verificar token de Google:", error);
-        return res.status(401).json({ message: "Token de Google inválido" });
-    }
+    // Puedes redirigir con tokens como query params (solo para testing/dev)
+    res.redirect(`http://localhost:5173/oauth-success?token=${token}&refreshToken=${refreshToken}`);
+  } catch (err) {
+    console.error('Google OAuth error:', err);
+    res.status(500).json({ message: 'Error en autenticación con Google' });
+  }
 };
