@@ -525,4 +525,35 @@ router.put('/:id/toggle-visibility', userController.toggleUserVisibility);
  */
 router.get('/followers/:id', userController.getUserFollowersController);
 
+/**
+ * @openapi
+ * /api/users/followers/{userId}/{targetUserId}:
+ *   put:
+ *     summary: Start following a user
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the user who wants to follow
+ *       - in: path
+ *         name: targetUserId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the user to be followed
+ *     responses:
+ *       200:
+ *         description: Started following user successfully
+ *       400:
+ *         description: User ID and Target User ID are required
+ *       404:
+ *         description: Target user not found
+ *       500:
+ *         description: Error starting to follow user
+ */
+router.put('/followers/:userId/:targetUserId', userController.startFollowingUserController);
+
 export default router;

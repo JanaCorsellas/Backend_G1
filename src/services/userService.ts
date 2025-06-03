@@ -189,3 +189,11 @@ export const getUserFollowers = async (userId: string): Promise<Types.ObjectId[]
   let user =  await UserModel.findById(userId);
   return user ? user.followers : [];
 };
+
+export const startFollowingUser = async (userId: string, targetUserId: string) => {
+  return await UserModel.findByIdAndUpdate(
+    targetUserId,
+    { $addToSet : {followers: new mongoose.Types.ObjectId(userId)} },
+    { new : true}
+  );
+};

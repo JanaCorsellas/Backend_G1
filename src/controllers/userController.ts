@@ -565,3 +565,26 @@ export const getUserFollowersController = async (req: Request, res: Response): P
   }
 }
 
+export const startFollowingUserController = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.params.userId;
+    const targetUserId = req.params.targetUserId;
+
+    if (!userId || !targetUserId) {
+      res.status(400).json({ message: 'User ID and Target User ID are required' });
+      return;
+    }
+
+    const result = await userService.startFollowingUser(userId, targetUserId);
+
+    if (!result) {
+      res.status(404).json({ message: 'Target user not found' });
+      return;
+    }
+
+    res.status(200).json({ message: 'Started following user successfully', result });
+  } catch (error) {
+    console.error('Error starting to follow user:', error);
+    res.status(500).json({ message: 'Error starting to follow user' });
+  }
+};
