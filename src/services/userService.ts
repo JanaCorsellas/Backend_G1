@@ -1,5 +1,5 @@
 import UserModel, { IUser } from '../models/user';
-import mongoose, { Types } from 'mongoose';
+import mongoose from 'mongoose';
 
 /**
  * Obtenir tots els usuaris
@@ -86,11 +86,7 @@ export const updateUser = async (userId: string, userData: Partial<IUser>): Prom
     throw new Error('Rol inválido. Los valores permitidos son "user" o "admin"');
   }
   
-  return await UserModel.findByIdAndUpdate(
-    userId,
-    userData,
-    { new: true }
-  );
+  return await UserModel.findByIdAndUpdate(userId, userData, { new: true });
 };
 
 /**
@@ -101,35 +97,19 @@ export const deleteUser = async (userId: string): Promise<IUser | null> => {
 };
 
 /**
- * Añadir una actividad a un usuario
+ * Alternar visibilidad de un usuario
  */
-export const addActivityToUser = async (userId: string, activityId: string): Promise<IUser | null> => {
-  return await UserModel.findByIdAndUpdate(
-    userId,
-    { $push: { activities: new mongoose.Types.ObjectId(activityId) } },
-    { new: true }
-  );
-};
-
-export const getUserByIdIgnoringVisibility = async (userId: string): Promise<IUser | null> => {
-  // Utilizamos findById pero luego hacemos el lean() para obtener un objeto JS plano
-  // y el 'getOptions' con { includeInvisible: true } para indicar que queremos omitir el filtro de visibilidad
-  return await UserModel.findById(userId).lean({ getters: true });
-};
-
-// Añadir visibilidad a un usuario
 export const toggleUserVisibility = async (userId: string): Promise<IUser | null> => {
   try {
-    // 1. Primero, obtenemos el documento directamente (saltando los pre-hooks)
-    // usando el método findOne directamente con la opción strict false
-    const userDoc = await UserModel.collection.findOne({ _id: new mongoose.Types.ObjectId(userId) });
+    // 1. Buscar al usuario por ID
+    const user = await UserModel.findById(userId);
     
-    if (!userDoc) {
+    if (!user) {
       return null;
     }
     
-    // 2. Invertimos el valor de visibility
-    const currentVisibility = userDoc.visibility !== undefined ? userDoc.visibility : true;
+    // 2. Invertir el valor de visibility
+    const currentVisibility = user.visibility !== undefined ? user.visibility : true;
     const newVisibility = !currentVisibility;
     
     // 3. Actualizamos el documento con el nuevo valor
@@ -139,14 +119,13 @@ export const toggleUserVisibility = async (userId: string): Promise<IUser | null
     );
     
     // 4. Para devolver el documento actualizado, lo volvemos a buscar
-    // Nota: Este paso podría omitirse o reemplazarse si solo necesitas confirmar que se actualizó
     const updatedUser = await UserModel.collection.findOne({ _id: new mongoose.Types.ObjectId(userId) });
     
     if (!updatedUser) {
       return null;
     }
     
-    // 5. Convertimos el documento a IUser (formato que espera el controlador)
+    // 5. Convertimos el documento a IUser
     return {
       _id: updatedUser._id,
       username: updatedUser.username,
@@ -163,7 +142,9 @@ export const toggleUserVisibility = async (userId: string): Promise<IUser | null
       createdAt: updatedUser.createdAt,
       updatedAt: updatedUser.updatedAt,
       visibility: updatedUser.visibility,
-      role: updatedUser.role || 'user'
+      role: updatedUser.role || 'user',
+      followers: updatedUser.followers || [],
+      following: updatedUser.following || []
     } as IUser;
   } catch (error) {
     console.error('Error en toggleUserVisibility:', error);
@@ -171,29 +152,404 @@ export const toggleUserVisibility = async (userId: string): Promise<IUser | null
   }
 };
 
-
+/**
+ * Buscar usuarios por query
+ */
 export const findUsersByQuery = async (search: string) => {
   const regex = new RegExp(search, 'i');
-
 
   const users = await UserModel.find({ username: regex })
     .select('username profilePicture level')
     .limit(10)
     .lean();
 
-
   return users;
 };
 
-export const getUserFollowers = async (userId: string): Promise<Types.ObjectId[]> =>{
-  let user =  await UserModel.findById(userId);
-  return user ? user.followers : [];
+// =============================
+// SISTEMA DE SEGUIMIENTO SIN TRANSACCIONES
+// =============================
+
+/**
+ * Obtener seguidores de un usuario
+ */
+export const getUserFollowers = async (userId: string): Promise<IUser[]> => {
+  try {
+    const user = await UserModel.findById(userId)
+      .populate('followers', 'username profilePicture level bio createdAt')
+      .lean();
+    
+    if (!user || !user.followers) {
+      return [];
+    }
+    
+    // Verificar si los followers están populados
+    const followers = user.followers;
+    if (followers.length > 0 && typeof followers[0] === 'object' && 'username' in followers[0]) {
+      return followers as unknown as IUser[];
+    }
+    
+    return [];
+  } catch (error) {
+    console.error('Error getting user followers:', error);
+    throw error;
+  }
 };
 
-export const startFollowingUser = async (userId: string, targetUserId: string) => {
-  return await UserModel.findByIdAndUpdate(
-    targetUserId,
-    { $addToSet : {followers: new mongoose.Types.ObjectId(userId)} },
-    { new : true}
-  );
+/**
+ * Obtener usuarios que sigue un usuario
+ */
+export const getUserFollowing = async (userId: string): Promise<IUser[]> => {
+  try {
+    const user = await UserModel.findById(userId)
+      .populate('following', 'username profilePicture level bio createdAt')
+      .lean();
+    
+    if (!user || !user.following) {
+      return [];
+    }
+    
+    // Verificar si los following están populados
+    const following = user.following;
+    if (following.length > 0 && typeof following[0] === 'object' && 'username' in following[0]) {
+      return following as unknown as IUser[];
+    }
+    
+    return [];
+  } catch (error) {
+    console.error('Error getting user following:', error);
+    throw error;
+  }
 };
+
+/**
+ * Seguir a un usuario (SIN TRANSACCIONES - Compatible con MongoDB Standalone)
+ */
+export const followUser = async (userId: string, targetUserId: string): Promise<{
+  success: boolean;
+  message: string;
+  follower?: IUser;
+  following?: IUser;
+}> => {
+  try {
+    console.log(`👥 Iniciando seguimiento: ${userId} -> ${targetUserId}`);
+    
+    // Validaciones básicas
+    if (userId === targetUserId) {
+      return { success: false, message: 'No puedes seguirte a ti mismo' };
+    }
+
+    // Verificar que ambos usuarios existen
+    const [user, targetUser] = await Promise.all([
+      UserModel.findById(userId),
+      UserModel.findById(targetUserId)
+    ]);
+
+    if (!user) {
+      return { success: false, message: 'Usuario no encontrado' };
+    }
+
+    if (!targetUser) {
+      return { success: false, message: 'Usuario objetivo no encontrado' };
+    }
+
+    // Verificar si ya se sigue
+    const isAlreadyFollowing = user.following.includes(new mongoose.Types.ObjectId(targetUserId));
+    if (isAlreadyFollowing) {
+      return { success: false, message: 'Ya sigues a este usuario' };
+    }
+
+    console.log(` Validaciones pasadas, procediendo con seguimiento`);
+
+    // Realizar las actualizaciones SIN transacciones
+    try {
+      // 1. Agregar targetUser a la lista following del user
+      const updateUserResult = await UserModel.findByIdAndUpdate(
+        userId,
+        { $addToSet: { following: new mongoose.Types.ObjectId(targetUserId) } },
+        { new: true }
+      );
+
+      if (!updateUserResult) {
+        console.error(' Error actualizando usuario que sigue');
+        return { success: false, message: 'Error actualizando usuario' };
+      }
+
+      console.log(` Usuario ${userId} actualizado - ahora sigue a ${targetUserId}`);
+
+      // 2. Agregar user a la lista followers del targetUser
+      const updateTargetResult = await UserModel.findByIdAndUpdate(
+        targetUserId,
+        { $addToSet: { followers: new mongoose.Types.ObjectId(userId) } },
+        { new: true }
+      );
+
+      if (!updateTargetResult) {
+        console.error(' Error actualizando usuario objetivo');
+        
+        // ROLLBACK MANUAL: revertir el primer cambio
+        await UserModel.findByIdAndUpdate(
+          userId,
+          { $pull: { following: new mongoose.Types.ObjectId(targetUserId) } }
+        );
+        
+        return { success: false, message: 'Error actualizando usuario objetivo' };
+      }
+
+      console.log(`Usuario ${targetUserId} actualizado - ahora es seguido por ${userId}`);
+      console.log(` Seguimiento completado exitosamente`);
+
+      return {
+        success: true,
+        message: 'Usuario seguido exitosamente',
+        follower: updateUserResult,
+        following: updateTargetResult
+      };
+
+    } catch (updateError) {
+      console.error('Error durante actualizaciones:', updateError);
+      return { success: false, message: 'Error durante la actualización' };
+    }
+
+  } catch (error) {
+    console.error(' Error en followUser:', error);
+    return { success: false, message: 'Error interno del servidor' };
+  }
+};
+
+/**
+ * Dejar de seguir a un usuario (SIN TRANSACCIONES)
+ */
+export const unfollowUser = async (userId: string, targetUserId: string): Promise<{
+  success: boolean;
+  message: string;
+  follower?: IUser;
+  following?: IUser;
+}> => {
+  try {
+    console.log(`👥 Iniciando unfollow: ${userId} -/-> ${targetUserId}`);
+    
+    // Validaciones básicas
+    if (userId === targetUserId) {
+      return { success: false, message: 'No puedes dejar de seguirte a ti mismo' };
+    }
+
+    // Verificar que ambos usuarios existen
+    const [user, targetUser] = await Promise.all([
+      UserModel.findById(userId),
+      UserModel.findById(targetUserId)
+    ]);
+
+    if (!user) {
+      return { success: false, message: 'Usuario no encontrado' };
+    }
+
+    if (!targetUser) {
+      return { success: false, message: 'Usuario objetivo no encontrado' };
+    }
+
+    // Verificar si realmente se sigue
+    const isFollowing = user.following.includes(new mongoose.Types.ObjectId(targetUserId));
+    if (!isFollowing) {
+      return { success: false, message: 'No sigues a este usuario' };
+    }
+
+    console.log(` Validaciones pasadas, procediendo con unfollow`);
+
+    // Realizar las actualizaciones SIN transacciones
+    try {
+      // 1. Remover targetUser de la lista following del user
+      const updateUserResult = await UserModel.findByIdAndUpdate(
+        userId,
+        { $pull: { following: new mongoose.Types.ObjectId(targetUserId) } },
+        { new: true }
+      );
+
+      if (!updateUserResult) {
+        console.error(' Error actualizando usuario que deja de seguir');
+        return { success: false, message: 'Error actualizando usuario' };
+      }
+
+      console.log(`Usuario ${userId} actualizado - ya no sigue a ${targetUserId}`);
+
+      // 2. Remover user de la lista followers del targetUser
+      const updateTargetResult = await UserModel.findByIdAndUpdate(
+        targetUserId,
+        { $pull: { followers: new mongoose.Types.ObjectId(userId) } },
+        { new: true }
+      );
+
+      if (!updateTargetResult) {
+        console.error(' Error actualizando usuario objetivo');
+        
+        // ROLLBACK MANUAL: revertir el primer cambio
+        await UserModel.findByIdAndUpdate(
+          userId,
+          { $addToSet: { following: new mongoose.Types.ObjectId(targetUserId) } }
+        );
+        
+        return { success: false, message: 'Error actualizando usuario objetivo' };
+      }
+
+      console.log(` Usuario ${targetUserId} actualizado - ya no es seguido por ${userId}`);
+      console.log(` Unfollow completado exitosamente`);
+
+      return {
+        success: true,
+        message: 'Dejaste de seguir al usuario exitosamente',
+        follower: updateUserResult,
+        following: updateTargetResult
+      };
+
+    } catch (updateError) {
+      console.error(' Error durante actualizaciones:', updateError);
+      return { success: false, message: 'Error durante la actualización' };
+    }
+
+  } catch (error) {
+    console.error(' Error en unfollowUser:', error);
+    return { success: false, message: 'Error interno del servidor' };
+  }
+};
+
+/**
+ * Verificar si un usuario sigue a otro
+ */
+export const checkFollowStatus = async (userId: string, targetUserId: string): Promise<{
+  isFollowing: boolean;
+  isFollowedBy: boolean;
+}> => {
+  try {
+    if (userId === targetUserId) {
+      return { isFollowing: false, isFollowedBy: false };
+    }
+
+    const user = await UserModel.findById(userId).select('following followers').lean();
+    
+    if (!user) {
+      return { isFollowing: false, isFollowedBy: false };
+    }
+
+    const targetObjectId = new mongoose.Types.ObjectId(targetUserId);
+    
+    const isFollowing = user.following.some(id => id.equals(targetObjectId));
+    const isFollowedBy = user.followers.some(id => id.equals(targetObjectId));
+
+    return { isFollowing, isFollowedBy };
+  } catch (error) {
+    console.error('Error checking follow status:', error);
+    return { isFollowing: false, isFollowedBy: false };
+  }
+};
+
+/**
+ * Obtener estadísticas de seguimiento de un usuario
+ */
+export const getUserFollowStats = async (userId: string): Promise<{
+  followersCount: number;
+  followingCount: number;
+  followers: IUser[];
+  following: IUser[];
+} | null> => {
+  try {
+    const user = await UserModel.findById(userId)
+      .populate('followers', 'username profilePicture level')
+      .populate('following', 'username profilePicture level')
+      .select('followers following')
+      .lean();
+
+    if (!user) {
+      return null;
+    }
+
+    // Verificar y convertir followers
+    let followersArray: IUser[] = [];
+    if (user.followers && user.followers.length > 0) {
+      const followers = user.followers;
+      if (typeof followers[0] === 'object' && 'username' in followers[0]) {
+        followersArray = followers as unknown as IUser[];
+      }
+    }
+
+    // Verificar y convertir following
+    let followingArray: IUser[] = [];
+    if (user.following && user.following.length > 0) {
+      const following = user.following;
+      if (typeof following[0] === 'object' && 'username' in following[0]) {
+        followingArray = following as unknown as IUser[];
+      }
+    }
+
+    return {
+      followersCount: followersArray.length,
+      followingCount: followingArray.length,
+      followers: followersArray,
+      following: followingArray
+    };
+  } catch (error) {
+    console.error('Error getting user follow stats:', error);
+    throw error;
+  }
+};
+
+/**
+ * Obtener usuarios sugeridos para seguir
+ */
+export const getSuggestedUsers = async (userId: string, limit: number = 10): Promise<IUser[]> => {
+  try {
+    const user = await UserModel.findById(userId).select('following').lean();
+    
+    if (!user) {
+      return [];
+    }
+
+    // Obtener usuarios que no sigue actualmente, excluyéndose a sí mismo
+    const suggestedUsers = await UserModel.find({
+      _id: { 
+        $nin: [...user.following, new mongoose.Types.ObjectId(userId)] 
+      },
+      visibility: { $ne: false }
+    })
+    .select('username profilePicture level bio createdAt')
+    .limit(limit)
+    .lean();
+
+    return suggestedUsers as unknown as IUser[];
+  } catch (error) {
+    console.error('Error getting suggested users:', error);
+    throw error;
+  }
+};
+
+/**
+ * Buscar usuarios para seguir
+ */
+export const searchUsersToFollow = async (
+  currentUserId: string, 
+  searchTerm: string, 
+  limit: number = 20
+): Promise<IUser[]> => {
+  try {
+    const regex = new RegExp(searchTerm, 'i');
+
+    const users = await UserModel.find({
+      _id: { $ne: new mongoose.Types.ObjectId(currentUserId) },
+      $or: [
+        { username: regex },
+        { bio: regex }
+      ],
+      visibility: { $ne: false }
+    })
+    .select('username profilePicture level bio followers following')
+    .limit(limit)
+    .lean();
+
+    return users as unknown as IUser[];
+  } catch (error) {
+    console.error('Error searching users to follow:', error);
+    throw error;
+  }
+};
+
+// Mantener funciones existentes para compatibilidad
+export const startFollowingUser = followUser;
