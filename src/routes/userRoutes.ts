@@ -7,7 +7,30 @@ const router = Router();
 // =============================
 // RUTAS BÁSICAS DE USUARIOS
 // =============================
-
+/**
+ * @openapi
+ * /api/users/search:
+ *   get:
+ *     summary: Buscar usuarios por nombre de usuario
+ *     tags: [Users]
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Nombre de usuario a buscar
+ *     responses:
+ *       200:
+ *         description: Lista de usuarios encontrados
+ *       400:
+ *         description: Query demasiado corto
+ *       404:
+ *         description: No se encontraron usuarios
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.get('/search', userController.searchUsers);
 /**
  * @openapi
  * /api/users:
@@ -137,30 +160,7 @@ router.post('/', userController.createUser);
  */
 router.post('/login', userController.loginUser);
 
-/**
- * @openapi
- * /api/users/search:
- *   get:
- *     summary: Buscar usuarios por nombre de usuario
- *     tags: [Users]
- *     parameters:
- *       - in: query
- *         name: search
- *         required: true
- *         schema:
- *           type: string
- *         description: Nombre de usuario a buscar
- *     responses:
- *       200:
- *         description: Lista de usuarios encontrados
- *       400:
- *         description: Query demasiado corto
- *       404:
- *         description: No se encontraron usuarios
- *       500:
- *         description: Error interno del servidor
- */
-router.get('/search', userController.searchUsers);
+
 
 /**
  * @openapi

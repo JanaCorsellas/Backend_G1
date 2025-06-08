@@ -152,19 +152,7 @@ export const toggleUserVisibility = async (userId: string): Promise<IUser | null
   }
 };
 
-/**
- * Buscar usuarios por query
- */
-export const findUsersByQuery = async (search: string) => {
-  const regex = new RegExp(search, 'i');
 
-  const users = await UserModel.find({ username: regex })
-    .select('username profilePicture level')
-    .limit(10)
-    .lean();
-
-  return users;
-};
 
 // =============================
 // SISTEMA DE SEGUIMIENTO SIN TRANSACCIONES
@@ -488,6 +476,35 @@ export const getUserFollowStats = async (userId: string): Promise<{
     };
   } catch (error) {
     console.error('Error getting user follow stats:', error);
+    throw error;
+  }
+};
+/**
+ * ✅ NUEVA FUNCIÓN: Buscar usuarios por query (la que faltaba)
+ */
+export const findUsersByQuery = async (search: string): Promise<IUser[]> => {
+  try {
+    if (!search || search.length < 2) {
+      return [];
+    }
+
+    const regex = new RegExp(search, 'i');
+
+    const users = await UserModel.find({
+      $or: [
+        { username: regex },
+        { email: regex }
+      ],
+      visibility: { $ne: false } // Solo usuarios visibles
+    })
+    .select('username email profilePicture level bio createdAt')
+    .limit(20)
+    .lean();
+
+    console.log(`Búsqueda "${search}" encontró ${users.length} usuarios`);
+    return users as unknown as IUser[];
+  } catch (error) {
+    console.error('Error en findUsersByQuery:', error);
     throw error;
   }
 };
