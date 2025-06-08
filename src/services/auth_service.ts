@@ -14,19 +14,21 @@ const registerNewUser = async (userData: { username: string; email: string; pass
     const passHash = await encrypt(userData.password);
 
     const newUser = await User.create({
-        username: userData.username,
         email: userData.email,
         password: passHash,
-        role: "user",
-        profilePicture: null,
+        username: userData.username,
+        role: 'user',
         level: 1,
         totalDistance: 0,
         totalTime: 0,
         activities: [],
         achievements: [],
         challengesCompleted: [],
-        createdAt: new Date(),
-        updatedAt: new Date()
+        visibility: true,
+        profilePicture: null,
+        bio: null,
+        followers: [],
+        following: []
     });
 
     const token = generateToken(newUser);
