@@ -1,3 +1,4 @@
+import activity from '../models/activity';
 import ActivityModel from '../models/activity';
 import UserModel from '../models/user';
 import { 
@@ -123,7 +124,7 @@ export const getFollowingActivitiesController = async (req: Request, res: Respon
     const activities = await ActivityModel.find({
       author: { $in: user.following }
     })
-    .populate('author', 'username profilePicture level email _id') // ✅ CORREGIDO: populate 'author' en lugar de 'user'
+    .populate('author', 'username profilePicture profilePictureUrl level email _id') // ✅ AGREGADO: profilePictureUrl también
     .populate('route', 'name difficulty')
     .sort({ createdAt: -1 }) // Más recientes primero
     .skip(skip)
@@ -142,14 +143,27 @@ export const getFollowingActivitiesController = async (req: Request, res: Respon
 
     console.log(`📈 Total: ${totalActivities}, Pages: ${totalPages}, HasMore: ${hasMore}`);
 
-    // ✅ NUEVO: Transformar los datos para que 'author' aparezca también como 'user' para el frontend
+    // ✅ MEJORADO: Transformar los datos para incluir toda la información del usuario
+    interface PopulatedAuthor {
+      _id: string;
+      username?: string;
+      profilePicture?: string;
+      profilePictureUrl?: string;
+      level?: number;
+      email?: string;
+    }
+    interface PopulatedActivity extends Omit<typeof activity, 'author'> {
+      author: PopulatedAuthor;
+    }
     const transformedActivities = activities.map(activity => {
-      // If author is populated, it will be an object; otherwise, it's an ObjectId
-      const authorObj = typeof activity.author === 'object' && activity.author !== null ? activity.author as { username?: string } : {};
+      const author = activity.author as unknown as PopulatedAuthor;
       return {
         ...activity,
-        user: activity.author,
-        authorName: authorObj.username || 'Unknown User'
+        user: author,
+        authorName: author?.username || 'Unknown User',
+        userProfilePicture: author?.profilePicture || author?.profilePictureUrl || null,
+        userUsername: author?.username || 'Unknown User',
+        userId: author?._id || null,
       };
     });
 
