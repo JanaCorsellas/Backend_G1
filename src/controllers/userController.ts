@@ -301,26 +301,44 @@ export const toggleUserVisibility = async (req: Request, res: Response): Promise
 /**
  * Buscar usuarios
  */
-export const searchUsers = async (req: Request, res: Response) => {
-  const query = (req.query.search as string) || '';
-  if (query.length < 2) {
-    res.status(400).json({ message: 'Query demasiado corto' });
-    return;
-  }
-
+export const searchUsers = async (req: Request, res: Response): Promise<void> => {
   try {
-    const users = await userService.findUsersByQuery(query) as unknown as any[];
-    if (!users || users.length === 0) {
-      res.status(404).json({ message: 'No se encontraron usuarios' });
+    const search = req.query.search?.toString() || '';
+
+    console.log(`🔍 Búsqueda de usuarios con término: "${search}"`);
+
+    if (search.length < 2) {
+      res.status(400).json({ 
+        message: 'Search query too short',
+        users: [] 
+      });
       return;
     }
 
-    res.json({ users });
-    return;
+    
+    const users = await userService.searchUsersToFollow('', search, 20);
+
+    if (!users || users.length === 0) {
+      res.status(404).json({ 
+        message: 'No users found',
+        users: [] 
+      });
+      return;
+    }
+
+    console.log(`✅ Encontrados ${users.length} usuarios con datos de seguimiento`);
+
+    res.status(200).json({
+      message: 'Users found successfully',
+      count: users.length,
+      users: users
+    });
   } catch (error) {
-    console.error('Error al buscar usuarios:', error);
-    res.status(500).json({ message: 'Error interno del servidor' });
-    return;
+    console.error('Error buscando usuarios:', error);
+    res.status(500).json({ 
+      message: 'Error searching users',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 };
 

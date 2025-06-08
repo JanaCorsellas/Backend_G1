@@ -152,19 +152,13 @@ export const toggleUserVisibility = async (userId: string): Promise<IUser | null
   }
 };
 
-
-
-// =============================
-// SISTEMA DE SEGUIMIENTO SIN TRANSACCIONES
-// =============================
-
 /**
  * Obtener seguidores de un usuario
  */
-export const getUserFollowers = async (userId: string): Promise<IUser[]> => {
+export const getUserFollowers = async (userId: string): Promise<any[]> => {
   try {
     const user = await UserModel.findById(userId)
-      .populate('followers', 'username profilePicture level bio createdAt')
+      .populate('followers', 'username profilePicture level bio createdAt followers following')
       .lean();
     
     if (!user || !user.followers) {
@@ -174,7 +168,15 @@ export const getUserFollowers = async (userId: string): Promise<IUser[]> => {
     // Verificar si los followers están populados
     const followers = user.followers;
     if (followers.length > 0 && typeof followers[0] === 'object' && 'username' in followers[0]) {
-      return followers as unknown as IUser[];
+      // ✅ CALCULAR contadores para cada follower
+      const followersWithCounts = (followers as unknown as IUser[]).map(follower => ({
+        ...follower,
+        followersCount: follower.followers ? follower.followers.length : 0,
+        followingCount: follower.following ? follower.following.length : 0
+      }));
+      
+      console.log(`✅ getUserFollowers: Devolviendo ${followersWithCounts.length} seguidores con contadores`);
+      return followersWithCounts;
     }
     
     return [];
@@ -185,12 +187,12 @@ export const getUserFollowers = async (userId: string): Promise<IUser[]> => {
 };
 
 /**
- * Obtener usuarios que sigue un usuario
+ *  FUNCIÓN CORREGIDA: Obtener usuarios que sigue un usuario
  */
 export const getUserFollowing = async (userId: string): Promise<IUser[]> => {
   try {
     const user = await UserModel.findById(userId)
-      .populate('following', 'username profilePicture level bio createdAt')
+      .populate('following', 'username profilePicture level bio createdAt followers following')
       .lean();
     
     if (!user || !user.following) {
@@ -200,7 +202,15 @@ export const getUserFollowing = async (userId: string): Promise<IUser[]> => {
     // Verificar si los following están populados
     const following = user.following;
     if (following.length > 0 && typeof following[0] === 'object' && 'username' in following[0]) {
-      return following as unknown as IUser[];
+      // ✅ CALCULAR contadores para cada usuario seguido
+      const followingWithCounts = (following as unknown as IUser[]).map(followedUser => ({
+        ...followedUser,
+        followersCount: followedUser.followers ? followedUser.followers.length : 0,
+        followingCount: followedUser.following ? followedUser.following.length : 0
+      }));
+      
+      console.log(`✅ getUserFollowing: Devolviendo ${followingWithCounts.length} seguidos con contadores`);
+      return followingWithCounts as unknown as IUser[];
     }
     
     return [];
@@ -497,17 +507,70 @@ export const findUsersByQuery = async (search: string): Promise<IUser[]> => {
       ],
       visibility: { $ne: false } // Solo usuarios visibles
     })
-    .select('username email profilePicture level bio createdAt')
+    .select('username email profilePicture level bio createdAt followers following')
     .limit(20)
     .lean();
 
-    console.log(`Búsqueda "${search}" encontró ${users.length} usuarios`);
-    return users as unknown as IUser[];
+    // ✅ CALCULAR contadores de seguidores
+    const usersWithCounts = users.map(user => ({
+      ...user,
+      followersCount: user.followers ? user.followers.length : 0,
+      followingCount: user.following ? user.following.length : 0
+    }));
+
+    console.log(`Búsqueda "${search}" encontró ${users.length} usuarios con datos de seguimiento`);
+    return usersWithCounts as unknown as IUser[];
   } catch (error) {
     console.error('Error en findUsersByQuery:', error);
     throw error;
   }
 };
+
+/**
+ * ✅ FUNCIÓN MEJORADA: Buscar usuarios para seguir (con currentUserId opcional)
+ */
+export const searchUsersToFollow = async (
+  currentUserId: string, 
+  searchTerm: string, 
+  limit: number = 20
+): Promise<IUser[]> => {
+  try {
+    const regex = new RegExp(searchTerm, 'i');
+
+    // ✅ QUERY base
+    const baseQuery: any = {
+      $or: [
+        { username: regex },
+        { bio: regex }
+      ],
+      visibility: { $ne: false }
+    };
+
+    // ✅ SOLO excluir currentUserId si se proporciona y no está vacío
+    if (currentUserId && currentUserId.trim() !== '') {
+      baseQuery._id = { $ne: new mongoose.Types.ObjectId(currentUserId) };
+    }
+
+    const users = await UserModel.find(baseQuery)
+      .select('username profilePicture level bio followers following')
+      .limit(limit)
+      .lean();
+
+    // ✅ CALCULAR contadores de seguidores
+    const usersWithCounts = users.map(user => ({
+      ...user,
+      followersCount: user.followers ? user.followers.length : 0,
+      followingCount: user.following ? user.following.length : 0
+    }));
+
+    return usersWithCounts as unknown as IUser[];
+  } catch (error) {
+    console.error('Error searching users to follow:', error);
+    throw error;
+  }
+};
+
+
 
 /**
  * Obtener usuarios sugeridos para seguir
@@ -538,35 +601,6 @@ export const getSuggestedUsers = async (userId: string, limit: number = 10): Pro
   }
 };
 
-/**
- * Buscar usuarios para seguir
- */
-export const searchUsersToFollow = async (
-  currentUserId: string, 
-  searchTerm: string, 
-  limit: number = 20
-): Promise<IUser[]> => {
-  try {
-    const regex = new RegExp(searchTerm, 'i');
-
-    const users = await UserModel.find({
-      _id: { $ne: new mongoose.Types.ObjectId(currentUserId) },
-      $or: [
-        { username: regex },
-        { bio: regex }
-      ],
-      visibility: { $ne: false }
-    })
-    .select('username profilePicture level bio followers following')
-    .limit(limit)
-    .lean();
-
-    return users as unknown as IUser[];
-  } catch (error) {
-    console.error('Error searching users to follow:', error);
-    throw error;
-  }
-};
 
 // Mantener funciones existentes para compatibilidad
 export const startFollowingUser = followUser;
