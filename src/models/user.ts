@@ -83,7 +83,31 @@ const userSchema = new Schema({
     },
     fcmToken: {
         type: String,
+        default: null,
+        sparse: true // Permet que sigui null i no causi problemes d'unicitat
+    },
+    fcmTokens: [{
+        type: String
+    }],
+    fcmTokenUpdatedAt: {
+        type: Date,
         default: null
+    },
+    notificationSettings: {
+        type: {
+            friendRequests: { type: Boolean, default: true },
+            activityUpdates: { type: Boolean, default: true },
+            achievements: { type: Boolean, default: true },
+            challenges: { type: Boolean, default: true },
+            chatMessages: { type: Boolean, default: true }
+        },
+        default: () => ({
+            friendRequests: true,
+            activityUpdates: true,
+            achievements: true,
+            challenges: true,
+            chatMessages: true
+        })
     },
     // =============================
     // SISTEMA DE SEGUIMIENTO
@@ -329,7 +353,16 @@ export interface IUser extends Document {
     role: 'user' | 'admin';
     refreshToken?: string;
     fcmToken?: string;
-    
+    fcmTokens?: string[]; // per compatibilitat amb múltiples dispositius
+    fcmTokenUpdatedAt?: Date; //data de l'última actualització del token FCM
+    notificationSettings?: {     // Configuració de notificacions
+        friendRequests: boolean;
+        activityUpdates: boolean;
+        achievements: boolean;
+        challenges: boolean;
+        chatMessages: boolean;
+    };
+
     // Sistema de seguimiento
     followers: Types.ObjectId[];
     following: Types.ObjectId[];
@@ -351,3 +384,7 @@ export interface IUser extends Document {
 
 const UserModel = mongoose.model<IUser>('User', userSchema);
 export default UserModel;
+
+export function countDocuments() {
+  throw new Error('Function not implemented.');
+}

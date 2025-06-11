@@ -7,6 +7,11 @@ import * as userService from '../services/userService';
 import mongoose from 'mongoose';
 import { cloudinary } from '../config/cloudinary';
 import { extractPublicIdFromUrl } from '../middleware/cloudinaryUpload';
+import { 
+  updateFcmToken as updateFcmTokenService, 
+  getUsersWithFcmTokens 
+} from '../services/userService';
+import admin from '../config/firebaseAdmin';
 
 /**
  * Crear un nou usuari
@@ -381,13 +386,13 @@ export const uploadProfilePictureCloudinary = async (req: Request, res: Response
     // Eliminar imagen anterior si existe
     if (user.profilePicture) {
       try {
-        const publicId = extractPublicIdFromUrl(user.profilePicture);
-        if (publicId) {
-          await cloudinary.uploader.destroy(publicId);
-          console.log(`✅ Imagen anterior eliminada: ${publicId}`);
-        }
+      const publicId = extractPublicIdFromUrl(user.profilePicture);
+      if (publicId) {
+        await cloudinary.uploader.destroy(publicId);
+        console.log(`Imagen anterior eliminada: ${publicId}`);
+      }
       } catch (deleteError) {
-        console.warn('⚠️ No se pudo eliminar la imagen anterior:', deleteError);
+      console.warn('No se pudo eliminar la imagen anterior:', deleteError);
       }
     }
     
@@ -734,3 +739,177 @@ export const deleteProfilePicture = deleteProfilePictureCloudinary;
 
 // Mantener compatibilidad con funciones existentes
 export const startFollowingUserController = followUserController;
+
+/**
+ * Actualizar FCM token del usuario
+ */
+export const updateFcmToken = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId } = req.params;
+    const { fcmToken, platform = 'web' } = req.body;
+
+    // Validaciones básicas
+    if (!fcmToken) {
+      res.status(400).json({
+        success: false,
+        error: 'FCM token es requerido'
+      });
+      return;
+    }
+
+    if (!userId) {
+      res.status(400).json({
+        success: false,
+        error: 'User ID es requerido'
+      });
+      return;
+    }
+
+    console.log(`Actualizando FCM token para usuario ${userId}`);
+
+    // Llamar a tu método del service
+    const result = await updateFcmTokenService(userId, fcmToken);
+
+    res.status(200).json({
+      success: true,
+      message: 'FCM token actualizado correctamente',
+      data: {
+        userId: userId,
+        platform: platform,
+        updatedAt: new Date().toISOString()
+      }
+    });
+
+    console.log(`FCM token actualizado exitosamente para usuario ${userId}`);
+
+  } catch (error: any) {
+    console.error('Error in updateFcmToken controller:', error);
+    
+    if (error.message === 'Usuario no encontrado') {
+      res.status(404).json({
+        success: false,
+        error: 'Usuario no encontrado'
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: 'Error interno del servidor'
+      });
+    }
+  }
+};
+
+/**
+ * Enviar notificación de prueba usando Firebase Admin (CORREGIDO)
+ */
+export const sendTestNotification = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId } = req.params;
+    const { title = 'Notificación de prueba', message = 'Esta es una prueba desde el backend' } = req.body;
+
+    console.log(`Enviando notificación de prueba a usuario ${userId}`);
+
+    // Usar tu método getUsersWithFcmTokens
+    const users = await getUsersWithFcmTokens([userId]);
+    
+    if (users.length === 0) {
+      res.status(404).json({
+        success: false,
+        error: 'Usuario no encontrado o sin FCM token configurado'
+      });
+      return;
+    }
+
+    const user = users[0];
+
+    // Verificar que el usuario tenga FCM token
+    if (!user.fcmToken) {
+      res.status(400).json({
+        success: false,
+        error: 'Usuario no tiene FCM token configurado'
+      });
+      return;
+    }
+
+    const notificationMessage = {
+      token: user.fcmToken,
+      notification: {
+        title: title,
+        body: message
+      },
+      data: {
+        type: 'test',
+        userId: userId,
+        timestamp: new Date().toISOString()
+      },
+      webpush: {
+        fcmOptions: {
+          link: 'http://localhost:60066/#/notifications'
+        }
+      }
+    };
+
+    const response = await admin.messaging().send(notificationMessage);
+
+    res.status(200).json({
+      success: true,
+      message: 'Notificación de prueba enviada correctamente',
+      data: {
+        userId: userId,
+        username: user.username,
+        fcmResponse: response,
+        sentAt: new Date().toISOString()
+      }
+    });
+
+    console.log(`Notificación de prueba enviada:`, response);
+
+  } catch (error: any) {
+    console.error('Error in sendTestNotification controller:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error enviando notificación de prueba',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+
+/**
+ * Obtener estadísticas básicas de FCM tokens
+ */
+export const getFcmTokenStats = async (req: Request, res: Response): Promise<void> => {
+  try {
+    console.log(`Obteniendo estadísticas básicas de FCM tokens`);
+
+    // CORRECTO: Import sin extensión .js
+    const totalUsers = await User.countDocuments();
+    const usersWithTokens = await User.countDocuments({ 
+      fcmToken: { $exists: true, $ne: null } 
+    });
+
+    const stats = {
+      totalUsers,
+      usersWithTokens,
+      percentage: totalUsers > 0 ? (usersWithTokens / totalUsers * 100).toFixed(2) : 0
+    };
+
+    res.status(200).json({
+      success: true,
+      data: {
+        ...stats,
+        retrievedAt: new Date().toISOString(),
+        description: 'Estadísticas básicas de FCM tokens'
+      }
+    });
+
+    console.log(`Estadísticas FCM obtenidas:`, stats);
+
+  } catch (error: any) {
+    console.error('Error in getFcmTokenStats controller:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error interno del servidor'
+    });
+  }
+};

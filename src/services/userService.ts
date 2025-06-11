@@ -1,5 +1,6 @@
 import UserModel, { IUser } from '../models/user';
 import mongoose from 'mongoose';
+import admin from '../config/firebaseAdmin';
 
 /**
  * Obtenir tots els usuaris
@@ -604,3 +605,59 @@ export const getSuggestedUsers = async (userId: string, limit: number = 10): Pro
 
 // Mantener funciones existentes para compatibilidad
 export const startFollowingUser = followUser;
+
+/**
+ * Actualizar el FCM token de un usuario
+ */
+export const updateFcmToken = async (userId: string, fcmToken: string, platform: string = 'web'): Promise<any> => {
+  try {
+    const user = await UserModel.findById(userId);
+    if (!user) {
+      throw new Error('Usuario no encontrado');
+    }
+
+    // Actualizar el token principal
+    user.fcmToken = fcmToken;
+    user.fcmTokenUpdatedAt = new Date();
+
+    // Opcional: Mantener array de tokens para múltiples dispositivos
+    if (!user.fcmTokens) {
+      user.fcmTokens = [];
+    }
+    
+    // Evitar duplicados
+    if (!user.fcmTokens.includes(fcmToken)) {
+      user.fcmTokens.push(fcmToken);
+    }
+
+    await user.save();
+
+    console.log(`FCM token actualizado para usuario ${userId}`);
+    return {
+      success: true,
+      message: 'FCM token actualizado correctamente',
+      tokenCount: user.fcmTokens.length
+    };
+  } catch (error) {
+    console.error('Error updating FCM token:', error);
+    throw error;
+  }
+};
+
+/**
+ * Obtener usuarios con FCM tokens válidos
+ */
+export const getUsersWithFcmTokens = async (userIds: string[]): Promise<any[]> => {
+  try {
+    const users = await UserModel.find({
+      _id: { $in: userIds },
+      fcmToken: { $exists: true, $ne: null }
+    }).select('_id username fcmToken fcmTokens notificationSettings');
+
+    console.log(`Encontrados ${users.length} usuarios con FCM tokens`);
+    return users;
+  } catch (error) {
+    console.error('Error getting users with FCM tokens:', error);
+    throw error;
+  }
+};

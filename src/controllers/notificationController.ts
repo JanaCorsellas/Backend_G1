@@ -1,4 +1,3 @@
-// src/controllers/notificationController.ts
 import { Request, Response } from 'express';
 import * as notificationService from '../services/notificationService';
 
@@ -17,7 +16,6 @@ export const getUserNotificationsController = async (req: Request, res: Response
             return;
         }
 
-        // Validar parámetros de paginación
         if (page < 1 || limit < 1 || limit > 100) {
             res.status(400).json({ message: 'Invalid pagination parameters' });
             return;
@@ -27,7 +25,11 @@ export const getUserNotificationsController = async (req: Request, res: Response
 
         res.status(200).json({
             message: 'Notifications retrieved successfully',
-            ...result
+            notifications: result.notifications,
+            totalNotifications: result.totalNotifications,
+            unreadCount: result.unreadCount,
+            totalPages: result.totalPages,
+            currentPage: result.currentPage
         });
     } catch (error) {
         console.error('Error getting user notifications:', error);
@@ -159,7 +161,7 @@ export const createTestNotificationController = async (req: Request, res: Respon
         // Obtener Socket.IO desde el contexto global (si está disponible)
         const socketIO = (global as any).io;
 
-        const notification = await notificationService.createAndSendNotification({
+        const notification = await notificationService.createAndSendNotificationWithFCM({
             userId,
             type,
             title,
