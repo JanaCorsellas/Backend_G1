@@ -1,93 +1,99 @@
-import express from 'express';
+import { Router } from 'express';
 import * as userController from '../controllers/userController';
+import { uploadProfilePictureCloudinary } from '../middleware/cloudinaryUpload';
 
-const router = express.Router();
+const router = Router();
+
+// =============================
+// RUTAS BÁSICAS DE USUARIOS
+// =============================
+/**
+ * @openapi
+ * /api/users/search:
+ *   get:
+ *     summary: Buscar usuarios por nombre de usuario
+ *     tags: [Users]
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Nombre de usuario a buscar
+ *     responses:
+ *       200:
+ *         description: Lista de usuarios encontrados
+ *       400:
+ *         description: Query demasiado corto
+ *       404:
+ *         description: No se encontraron usuarios
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.get('/search', userController.searchUsers);
+/**
+ * @openapi
+ * /api/users:
+ *   get:
+ *     summary: Get all users with pagination
+ *     tags: [Users]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of users per page
+ *       - in: query
+ *         name: includeInvisible
+ *         schema:
+ *           type: boolean
+ *           default: false
+ *         description: Include invisible users
+ *     responses:
+ *       200:
+ *         description: List of users retrieved successfully
+ *       400:
+ *         description: Invalid pagination parameters
+ *       500:
+ *         description: Error fetching users
+ */
+router.get('/', userController.getUsers);
 
 /**
  * @openapi
- * components:
- *   schemas:
- *     User:
- *       type: object
- *       required:
- *         - username
- *         - email
- *         - password
- *       properties:
- *         username:
+ * /api/users/{id}:
+ *   get:
+ *     summary: Get user by ID
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
  *           type: string
- *           description: Nom d'usuari
- *         email:
- *           type: string
- *           description: Correu electrònic de l'usuari
- *         password:
- *           type: string
- *           description: Contrasenya d'autentificació de l'usuari
- *         profilePicture:
- *           type: string
- *           description: Enllaç on es troba la foto de perfil de l'usuari
- *         bio:
- *           type: string
- *           description: Biografía definida de l'usuari
- *         level:
- *           type: number
- *           description: Nivell d'experiència de l'usuari
- *         totalDistance:
- *           type: number
- *           description: Distància recorreguda en total per l'usuari
- *         totalTime:
- *           type: number
- *           description: Temps invertit en rutes (en total) per l'usuari
- *         activities:
- *            type: array
- *            items:
- *              type: objectId
- *              description: ID de les activitats associades a l'usuari
- *         achievements:
- *            type: array
- *            items:
- *              type: objectId
- *              description: ID dels asol·liments associades a l'usuari
- *         challengesCompleted:
- *            type: array
- *            items:
- *              type: objectId
- *              description: ID dels reptes completats associats a l'usuari
- *         createdAt:
- *            type: date-time
- *            description: Hora i data de la creació de l'usuari
- *         updatedAt:
- *            type: date-time
- *            description: Hora i data de l'última actualització de l'usuari
- *         visibility:
- *            type: boolean
- *            description: Indica si l'usuari és visible o no en la base de dades
- *         role:
- *            type: string
- *            enum: [user, admin]
- *            description: Rol de l'usuari (user o admin)
- *       example:
- *         username: Corredor44858
- *         email: nosequeficar@strava.es
- *         password: e%4e488585u4u€3|
- *         profilePicture:
- *         bio:
- *         level: 5
- *         totalDistance: 567
- *         activities: ['60d725b4e2f7cb001bce5ab1', '60d725b4e2f7cb001bce5ab2']
- *         achievements: ['60d725b4e2f7cb001bce5ab1', '60d725b4e2f7cb001bce5ab2']
- *         challengesCompleted: ['60d725b4e2f7cb001bce5ab1', '60d725b4e2f7cb001bce5ab2']
- *         createdAt: 2025-03-20T09:20:00Z
- *         updatedAt: 2025-03-20T09:20:00Z
- *         visibility: true
- *         role: user
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: User retrieved successfully
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Error fetching user
  */
+router.get('/:id', userController.getUserById);
 
 /**
  * @openapi
  * /api/users:
  *   post:
- *     summary: Create a new user
+ *     summary: Create new user
  *     tags: [Users]
  *     requestBody:
  *       required: true
@@ -154,57 +160,7 @@ router.post('/', userController.createUser);
  */
 router.post('/login', userController.loginUser);
 
-/**
- * @openapi
- * /api/users:
- *   get:
- *     summary: Get users
- *     tags: [Users]
- *     parameters:
- *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *           default: 1
- *         description: Page number
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 10
- *         description: Number of users per page
- *     responses:
- *       200:
- *         description: List of users with pagination metadata
- *       400:
- *         description: Invalid pagination parameters
- *       500:
- *         description: Error fetching users
- */
-router.get('/', userController.getUsers);
 
-/**
- * @openapi
- * /api/users/{id}:
- *   get:
- *     summary: Get user by ID
- *     tags: [Users]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: User ID
- *     responses:
- *       200:
- *         description: User data
- *       404:
- *         description: User not found
- *       500:
- *         description: Error fetching user
- */
-router.get('/:id', userController.getUserById);
 
 /**
  * @openapi
@@ -295,5 +251,519 @@ router.delete('/:id', userController.deleteUser);
  *         description: Error toggling user visibility
  */
 router.put('/:id/toggle-visibility', userController.toggleUserVisibility);
+
+// =============================
+// RUTAS DE PERFIL Y CLOUDINARY
+// =============================
+
+/**
+ * @openapi
+ * /api/users/{userId}/profile-picture:
+ *   post:
+ *     summary: Upload profile picture to Cloudinary
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               profilePicture:
+ *                 type: string
+ *                 format: binary
+ *                 description: Image file for profile picture
+ *     responses:
+ *       200:
+ *         description: Profile picture uploaded successfully
+ *       400:
+ *         description: No file provided or invalid file
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Error uploading profile picture
+ */
+router.post('/:userId/profile-picture', 
+  uploadProfilePictureCloudinary.single('profilePicture'), 
+  userController.uploadProfilePictureCloudinary
+);
+
+/**
+ * @openapi
+ * /api/users/{userId}/profile-picture:
+ *   delete:
+ *     summary: Delete profile picture
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: Profile picture deleted successfully
+ *       400:
+ *         description: User has no profile picture
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Error deleting profile picture
+ */
+router.delete('/:userId/profile-picture', userController.deleteProfilePictureCloudinary);
+
+// =============================
+// SISTEMA DE SEGUIMIENTO COMPLETO
+// =============================
+
+/**
+ * @openapi
+ * /api/users/{id}/followers:
+ *   get:
+ *     summary: Get followers of a user
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: List of followers retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 count:
+ *                   type: integer
+ *                 followers:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                       username:
+ *                         type: string
+ *                       profilePicture:
+ *                         type: string
+ *                       level:
+ *                         type: integer
+ *       400:
+ *         description: User ID is required
+ *       500:
+ *         description: Error fetching user followers
+ */
+router.get('/:id/followers', userController.getUserFollowersController);
+
+/**
+ * @openapi
+ * /api/users/{id}/following:
+ *   get:
+ *     summary: Get users that a user is following
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: List of following users retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 count:
+ *                   type: integer
+ *                 following:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                       username:
+ *                         type: string
+ *                       profilePicture:
+ *                         type: string
+ *                       level:
+ *                         type: integer
+ *       400:
+ *         description: User ID is required
+ *       500:
+ *         description: Error fetching user following
+ */
+router.get('/:id/following', userController.getUserFollowingController);
+
+/**
+ * @openapi
+ * /api/users/{userId}/follow/{targetUserId}:
+ *   post:
+ *     summary: Follow a user
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the user who wants to follow
+ *       - in: path
+ *         name: targetUserId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the user to be followed
+ *     responses:
+ *       200:
+ *         description: Started following user successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 success:
+ *                   type: boolean
+ *       400:
+ *         description: User ID and Target User ID are required, or already following
+ *       404:
+ *         description: Target user not found
+ *       500:
+ *         description: Error following user
+ */
+router.post('/:userId/follow/:targetUserId', userController.followUserController);
+
+/**
+ * @openapi
+ * /api/users/{userId}/unfollow/{targetUserId}:
+ *   post:
+ *     summary: Unfollow a user
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the user who wants to unfollow
+ *       - in: path
+ *         name: targetUserId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the user to be unfollowed
+ *     responses:
+ *       200:
+ *         description: Unfollowed user successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 success:
+ *                   type: boolean
+ *       400:
+ *         description: User ID and Target User ID are required, or not following
+ *       404:
+ *         description: Target user not found
+ *       500:
+ *         description: Error unfollowing user
+ */
+router.post('/:userId/unfollow/:targetUserId', userController.unfollowUserController);
+
+/**
+ * @openapi
+ * /api/users/{userId}/follow-status/{targetUserId}:
+ *   get:
+ *     summary: Check follow status between two users
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the first user
+ *       - in: path
+ *         name: targetUserId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the second user
+ *     responses:
+ *       200:
+ *         description: Follow status retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 userId:
+ *                   type: string
+ *                 targetUserId:
+ *                   type: string
+ *                 isFollowing:
+ *                   type: boolean
+ *                   description: Whether userId follows targetUserId
+ *                 isFollowedBy:
+ *                   type: boolean
+ *                   description: Whether userId is followed by targetUserId
+ *       400:
+ *         description: User ID and Target User ID are required
+ *       500:
+ *         description: Error checking follow status
+ */
+router.get('/:userId/follow-status/:targetUserId', userController.checkFollowStatusController);
+
+/**
+ * @openapi
+ * /api/users/{id}/follow-stats:
+ *   get:
+ *     summary: Get follow statistics for a user
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: Follow stats retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 userId:
+ *                   type: string
+ *                 followersCount:
+ *                   type: integer
+ *                 followingCount:
+ *                   type: integer
+ *                 followers:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 following:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       400:
+ *         description: User ID is required
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Error getting user follow stats
+ */
+router.get('/:id/follow-stats', userController.getUserFollowStatsController);
+
+/**
+ * @openapi
+ * /api/users/{id}/suggested:
+ *   get:
+ *     summary: Get suggested users to follow
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of suggested users to return
+ *     responses:
+ *       200:
+ *         description: Suggested users retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 count:
+ *                   type: integer
+ *                 users:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                       username:
+ *                         type: string
+ *                       profilePicture:
+ *                         type: string
+ *                       level:
+ *                         type: integer
+ *                       bio:
+ *                         type: string
+ *       400:
+ *         description: User ID is required
+ *       500:
+ *         description: Error getting suggested users
+ */
+router.get('/:id/suggested', userController.getSuggestedUsersController);
+
+/**
+ * @openapi
+ * /api/users/{userId}/search-to-follow:
+ *   get:
+ *     summary: Search users to follow
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Current user ID
+ *       - in: query
+ *         name: search
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Search term (minimum 2 characters)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Number of users to return
+ *     responses:
+ *       200:
+ *         description: Users search completed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 searchTerm:
+ *                   type: string
+ *                 count:
+ *                   type: integer
+ *                 users:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                       username:
+ *                         type: string
+ *                       profilePicture:
+ *                         type: string
+ *                       level:
+ *                         type: integer
+ *                       bio:
+ *                         type: string
+ *                       followers:
+ *                         type: array
+ *                       following:
+ *                         type: array
+ *       400:
+ *         description: User ID is required or search term too short
+ *       500:
+ *         description: Error searching users to follow
+ */
+router.get('/:userId/search-to-follow', userController.searchUsersToFollowController);
+
+// =============================
+// RUTAS DE COMPATIBILIDAD (mantener las existentes)
+// =============================
+
+/**
+ * @openapi
+ * /api/users/followers/{userId}/{targetUserId}:
+ *   put:
+ *     summary: Start following a user (legacy route)
+ *     tags: [Users]
+ *     deprecated: true
+ *     description: Use POST /api/users/{userId}/follow/{targetUserId} instead
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the user who wants to follow
+ *       - in: path
+ *         name: targetUserId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the user to be followed
+ *     responses:
+ *       200:
+ *         description: Started following user successfully
+ *       400:
+ *         description: User ID and Target User ID are required
+ *       404:
+ *         description: Target user not found
+ *       500:
+ *         description: Error starting to follow user
+ */
+router.put('/followers/:userId/:targetUserId', userController.startFollowingUserController);
+
+/**
+ * @openapi
+ * /api/users/followers/{id}:
+ *   get:
+ *     summary: Get followers of a user (legacy route)
+ *     tags: [Users]
+ *     deprecated: true
+ *     description: Use GET /api/users/{id}/followers instead
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: List of follower IDs
+ *       400:
+ *         description: User ID is required
+ *       500:
+ *         description: Error fetching user followers
+ */
+router.get('/followers/:id', userController.getUserFollowersController);
 
 export default router;

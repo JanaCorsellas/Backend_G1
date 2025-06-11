@@ -33,12 +33,13 @@ export const createActivity = async (userId: string, activityData: Omit<IActivit
 
     // Verificar y desbloquear nuevos logros
     try {
-        const { checkAndUnlockAchievements } = await import('./achievementService.js');
-        const newAchievements = await checkAndUnlockAchievements(userId);
+        const newAchievements = await achievementService.checkAndUnlockAchievements(userId);
         
         if (newAchievements.length > 0) {
             console.log(`Usuario ${userId} desbloqueó ${newAchievements.length} nuevos logros`);
-            // Aquí podrías enviar una notificación al usuario sobre los nuevos logros
+            
+            // No es necesario actualizar manualmente aquí, ya que checkAndUnlockAchievements
+            // ahora también actualiza el array de achievements del usuario
         }
     } catch (error) {
         console.error('Error checking achievements:', error);
@@ -52,12 +53,12 @@ export const createActivity = async (userId: string, activityData: Omit<IActivit
 export const getActivityById = async (activityId: string): Promise<IActivity | null> => {
     return await ActivityModel.findById(activityId).populate('route').populate('musicPlaylist').populate('author');
 };
-/*
+
 // Obtener todas las actividades de un usuario
 export const getActivitiesByUserId = async (userId: string): Promise<IActivity[]> => {
     return await ActivityModel.find({ author: userId }).populate('route').populate('musicPlaylist');
-};*/
-export const getActivitiesByUserIdPaginated = async (
+};
+/*export const getActivitiesByUserIdPaginated = async (
   userId: string,
   page: number = 1,
   limit: number = 4
@@ -84,7 +85,7 @@ export const getActivitiesByUserIdPaginated = async (
     totalPages: Math.ceil(totalActivities / limit),
     currentPage: page
   };
-};
+};*/
 // Obtener todas las actividades
 export const getAllActivities = async (): Promise<IActivity[]> => {
     return await ActivityModel.find().populate('route').populate('musicPlaylist').populate('author');

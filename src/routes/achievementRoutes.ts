@@ -214,6 +214,62 @@ router.post('/initialize/defaults', achievementController.initializeAchievements
 
 /**
  * @openapi
+ * /api/achievements/initialize/general:
+ *   post:
+ *     summary: Initialize general achievements
+ *     tags: [Achievements]
+ *     responses:
+ *       200:
+ *         description: General achievements initialized
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.post('/initialize/general', achievementController.initializeGeneralAchievementsController);
+
+/**
+ * @openapi
+ * /api/achievements/initialize/distance-total:
+ *   post:
+ *     summary: Initialize total distance achievements
+ *     tags: [Achievements]
+ *     responses:
+ *       200:
+ *         description: Total distance achievements initialized
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.post('/initialize/distance-total', achievementController.initializeDistanceTotalAchievementsController);
+
+/**
+ * @openapi
+ * /api/achievements/initialize/distance-single:
+ *   post:
+ *     summary: Initialize single distance achievements
+ *     tags: [Achievements]
+ *     responses:
+ *       200:
+ *         description: Single distance achievements initialized
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.post('/initialize/distance-single', achievementController.initializeDistanceSingleAchievementsController);
+
+/**
+ * @openapi
+ * /api/achievements/initialize/activity-specific:
+ *   post:
+ *     summary: Initialize activity-specific achievements
+ *     tags: [Achievements]
+ *     responses:
+ *       200:
+ *         description: Activity-specific achievements initialized
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.post('/initialize/activity-specific', achievementController.initializeActivitySpecificAchievementsController);
+
+/**
+ * @openapi
  * /api/achievements/{id}:
  *   put:
  *     summary: Update an existing achievement

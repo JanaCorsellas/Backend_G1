@@ -442,3 +442,6 @@ npm-debug.log
 *.json
 
 package-lock.json
+
+# Ignorar credenciales de Firebase
+src/firebase/trazer-e4cb2-firebase-adminsdk-fbsvc-559b9a1c97.json
