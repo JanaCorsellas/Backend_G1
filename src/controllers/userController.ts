@@ -12,6 +12,7 @@ import {
   getUsersWithFcmTokens 
 } from '../services/userService';
 import admin from '../config/firebaseAdmin';
+import { createFollowerNotificationWithFCM } from '../services/notificationService';
 
 /**
  * Crear un nou usuari
@@ -575,6 +576,22 @@ export const followUserController = async (req: Request, res: Response): Promise
     if (!result.success) {
       res.status(400).json({ message: result.message });
       return;
+    }
+
+    try {
+      const follower = await User.findById(userId);
+      if (follower) {
+        console.log(`Enviando notificación de seguidor: ${follower.username} → ${targetUserId}`);
+        await createFollowerNotificationWithFCM(
+          targetUserId,    // Usuario que va a recibir la notificación
+          userId,          // ID del seguidor
+          follower.username // Nombre del seguidor
+        );
+        console.log(`Notificación de seguidor enviada correctamente`);
+      }
+    } catch (notificationError) {
+      console.error('Error enviando notificación de seguidor:', notificationError);
+      // No fallar la operación principal por errores de notificación
     }
 
     res.status(200).json({
