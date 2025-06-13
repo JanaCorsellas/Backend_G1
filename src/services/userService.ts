@@ -2,9 +2,7 @@ import UserModel, { IUser } from '../models/user';
 import mongoose from 'mongoose';
 import admin from '../config/firebaseAdmin';
 
-/**
- * Obtenir tots els usuaris
- */
+// Obtenir tots els usuaris
 export const getUsers = async (page: number, limit: number): Promise<{
   users: IUser[];
   totalUsers: number;
@@ -51,38 +49,28 @@ export const getUsers = async (page: number, limit: number): Promise<{
   }
 };
 
-/**
- * Crear un nuevo usuario con rol especificado
- */
+// Crear un nou usuari amb un rol específic
 export const createUser = async (userData: Partial<IUser>): Promise<IUser> => {
-  // Aseguramos que el rol sea válido o establecemos el valor por defecto
   if (userData.role && !['user', 'admin'].includes(userData.role)) {
-    userData.role = 'user'; // Si el rol no es válido, asignamos 'user' por defecto
+    userData.role = 'user'; // Si el rol no es vàlido, assignem 'user' per defecte
   }
   
   const newUser = new UserModel(userData);
   return await newUser.save();
 };
 
-/**
- * Obtener un usuario por su ID
- */
+// Obtenir un usuario per la seva ID
 export const getUserById = async (userId: string): Promise<IUser | null> => {
   return await UserModel.findById(userId);
 };
 
-/**
- * Obtener un usuario por su nombre de usuario
- */
+// Obtenir un usuario per nom d'usuari
 export const getUserByUsername = async (username: string): Promise<IUser | null> => {
   return await UserModel.findOne({ username });
 };
 
-/**
- * Actualizar un usuario, incluyendo su rol
- */
+// Actualitzar un usuari
 export const updateUser = async (userId: string, userData: Partial<IUser>): Promise<IUser | null> => {
-  // Validar el rol si se proporciona
   if (userData.role && !['user', 'admin'].includes(userData.role)) {
     throw new Error('Rol inválido. Los valores permitidos son "user" o "admin"');
   }
@@ -90,16 +78,12 @@ export const updateUser = async (userId: string, userData: Partial<IUser>): Prom
   return await UserModel.findByIdAndUpdate(userId, userData, { new: true });
 };
 
-/**
- * Eliminar un usuario
- */
+// Eliminar un usuari
 export const deleteUser = async (userId: string): Promise<IUser | null> => {
   return await UserModel.findByIdAndDelete(userId);
 };
 
-/**
- * Alternar visibilidad de un usuario
- */
+// Alternar visibilitat d'un usuari
 export const toggleUserVisibility = async (userId: string): Promise<IUser | null> => {
   try {
     // 1. Buscar al usuario por ID
@@ -153,9 +137,7 @@ export const toggleUserVisibility = async (userId: string): Promise<IUser | null
   }
 };
 
-/**
- * Obtener seguidores de un usuario
- */
+// Obtenir seguidors d'un usuari
 export const getUserFollowers = async (userId: string): Promise<any[]> => {
   try {
     const user = await UserModel.findById(userId)
@@ -169,14 +151,14 @@ export const getUserFollowers = async (userId: string): Promise<any[]> => {
     // Verificar si los followers están populados
     const followers = user.followers;
     if (followers.length > 0 && typeof followers[0] === 'object' && 'username' in followers[0]) {
-      // ✅ CALCULAR contadores para cada follower
+      // CALCULAR contadores para cada follower
       const followersWithCounts = (followers as unknown as IUser[]).map(follower => ({
         ...follower,
         followersCount: follower.followers ? follower.followers.length : 0,
         followingCount: follower.following ? follower.following.length : 0
       }));
       
-      console.log(`✅ getUserFollowers: Devolviendo ${followersWithCounts.length} seguidores con contadores`);
+      console.log(`getUserFollowers: Devolviendo ${followersWithCounts.length} seguidores con contadores`);
       return followersWithCounts;
     }
     
@@ -187,9 +169,7 @@ export const getUserFollowers = async (userId: string): Promise<any[]> => {
   }
 };
 
-/**
- *  FUNCIÓN CORREGIDA: Obtener usuarios que sigue un usuario
- */
+// Obtenir usuaris que segueix un usuari
 export const getUserFollowing = async (userId: string): Promise<IUser[]> => {
   try {
     const user = await UserModel.findById(userId)
@@ -203,14 +183,14 @@ export const getUserFollowing = async (userId: string): Promise<IUser[]> => {
     // Verificar si los following están populados
     const following = user.following;
     if (following.length > 0 && typeof following[0] === 'object' && 'username' in following[0]) {
-      // ✅ CALCULAR contadores para cada usuario seguido
+      // CALCULAR contadores para cada usuario seguido
       const followingWithCounts = (following as unknown as IUser[]).map(followedUser => ({
         ...followedUser,
         followersCount: followedUser.followers ? followedUser.followers.length : 0,
         followingCount: followedUser.following ? followedUser.following.length : 0
       }));
       
-      console.log(`✅ getUserFollowing: Devolviendo ${followingWithCounts.length} seguidos con contadores`);
+      console.log(`getUserFollowing: Devolviendo ${followingWithCounts.length} seguidos con contadores`);
       return followingWithCounts as unknown as IUser[];
     }
     
@@ -221,9 +201,7 @@ export const getUserFollowing = async (userId: string): Promise<IUser[]> => {
   }
 };
 
-/**
- * Seguir a un usuario (SIN TRANSACCIONES - Compatible con MongoDB Standalone)
- */
+// Seguir un usuari
 export const followUser = async (userId: string, targetUserId: string): Promise<{
   success: boolean;
   message: string;
@@ -316,9 +294,7 @@ export const followUser = async (userId: string, targetUserId: string): Promise<
   }
 };
 
-/**
- * Dejar de seguir a un usuario (SIN TRANSACCIONES)
- */
+// Deixar de seguir un usuari
 export const unfollowUser = async (userId: string, targetUserId: string): Promise<{
   success: boolean;
   message: string;
@@ -411,9 +387,7 @@ export const unfollowUser = async (userId: string, targetUserId: string): Promis
   }
 };
 
-/**
- * Verificar si un usuario sigue a otro
- */
+// Verificar si un usuario segueix un altre
 export const checkFollowStatus = async (userId: string, targetUserId: string): Promise<{
   isFollowing: boolean;
   isFollowedBy: boolean;
@@ -441,9 +415,7 @@ export const checkFollowStatus = async (userId: string, targetUserId: string): P
   }
 };
 
-/**
- * Obtener estadísticas de seguimiento de un usuario
- */
+// Obtenir estadístiques de seguiment d'un usuari
 export const getUserFollowStats = async (userId: string): Promise<{
   followersCount: number;
   followingCount: number;
@@ -490,9 +462,7 @@ export const getUserFollowStats = async (userId: string): Promise<{
     throw error;
   }
 };
-/**
- * ✅ NUEVA FUNCIÓN: Buscar usuarios por query (la que faltaba)
- */
+// Buscar usuaris per query
 export const findUsersByQuery = async (search: string): Promise<IUser[]> => {
   try {
     if (!search || search.length < 2) {
@@ -512,7 +482,7 @@ export const findUsersByQuery = async (search: string): Promise<IUser[]> => {
     .limit(20)
     .lean();
 
-    // ✅ CALCULAR contadores de seguidores
+    // CALCULAR contadores de seguidores
     const usersWithCounts = users.map(user => ({
       ...user,
       followersCount: user.followers ? user.followers.length : 0,
@@ -527,9 +497,7 @@ export const findUsersByQuery = async (search: string): Promise<IUser[]> => {
   }
 };
 
-/**
- * ✅ FUNCIÓN MEJORADA: Buscar usuarios para seguir (con currentUserId opcional)
- */
+// Buscar usuaris per seguir
 export const searchUsersToFollow = async (
   currentUserId: string, 
   searchTerm: string, 
@@ -538,7 +506,7 @@ export const searchUsersToFollow = async (
   try {
     const regex = new RegExp(searchTerm, 'i');
 
-    // ✅ QUERY base
+    // QUERY base
     const baseQuery: any = {
       $or: [
         { username: regex },
@@ -547,7 +515,7 @@ export const searchUsersToFollow = async (
       visibility: { $ne: false }
     };
 
-    // ✅ SOLO excluir currentUserId si se proporciona y no está vacío
+    // SOLO excluir currentUserId si se proporciona y no está vacío
     if (currentUserId && currentUserId.trim() !== '') {
       baseQuery._id = { $ne: new mongoose.Types.ObjectId(currentUserId) };
     }
@@ -557,7 +525,7 @@ export const searchUsersToFollow = async (
       .limit(limit)
       .lean();
 
-    // ✅ CALCULAR contadores de seguidores
+    // CALCULAR contadores de seguidores
     const usersWithCounts = users.map(user => ({
       ...user,
       followersCount: user.followers ? user.followers.length : 0,
@@ -572,10 +540,7 @@ export const searchUsersToFollow = async (
 };
 
 
-
-/**
- * Obtener usuarios sugeridos para seguir
- */
+// Obtenir usuaris suggerits per seguir
 export const getSuggestedUsers = async (userId: string, limit: number = 10): Promise<IUser[]> => {
   try {
     const user = await UserModel.findById(userId).select('following').lean();
@@ -606,9 +571,7 @@ export const getSuggestedUsers = async (userId: string, limit: number = 10): Pro
 // Mantener funciones existentes para compatibilidad
 export const startFollowingUser = followUser;
 
-/**
- * Actualizar el FCM token de un usuario
- */
+// Actualitzar el token FCM d'un usuari
 export const updateFcmToken = async (userId: string, fcmToken: string, platform: string = 'web'): Promise<any> => {
   try {
     const user = await UserModel.findById(userId);
@@ -616,16 +579,16 @@ export const updateFcmToken = async (userId: string, fcmToken: string, platform:
       throw new Error('Usuario no encontrado');
     }
 
-    // Actualizar el token principal
+    // Actualitzar el token principal
     user.fcmToken = fcmToken;
     user.fcmTokenUpdatedAt = new Date();
 
-    // Opcional: Mantener array de tokens para múltiples dispositivos
+    // Mantenir array de tokens per múltiples dispositius
     if (!user.fcmTokens) {
       user.fcmTokens = [];
     }
     
-    // Evitar duplicados
+    // Evitar duplicats
     if (!user.fcmTokens.includes(fcmToken)) {
       user.fcmTokens.push(fcmToken);
     }
@@ -644,9 +607,7 @@ export const updateFcmToken = async (userId: string, fcmToken: string, platform:
   }
 };
 
-/**
- * Obtener usuarios con FCM tokens válidos
- */
+// Obtener usuaris amb tokens FCM vàlids
 export const getUsersWithFcmTokens = async (userIds: string[]): Promise<any[]> => {
   try {
     const users = await UserModel.find({

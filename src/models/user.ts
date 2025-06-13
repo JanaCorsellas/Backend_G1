@@ -1,7 +1,5 @@
-// src/models/user.ts - Actualizado con Sistema de Seguimiento Completo
 import mongoose, { Schema, Types, Document } from "mongoose";
 
-// Schema definition
 const userSchema = new Schema({
     username: {
         type: String,
@@ -109,9 +107,6 @@ const userSchema = new Schema({
             chatMessages: true
         })
     },
-    // =============================
-    // SISTEMA DE SEGUIMIENTO
-    // =============================
     followers: [{
         type: Schema.Types.ObjectId,
         ref: 'User',
@@ -129,21 +124,15 @@ const userSchema = new Schema({
     timestamps: true,
 });
 
-// =============================
-// VIRTUALS PARA CLOUDINARY
-// =============================
-
+// Virtuals per cloudinary
 userSchema.virtual('profilePictureUrl').get(function() {
-    // Con Cloudinary, profilePicture ya es la URL completa
     return this.profilePicture || null;
 });
 
 userSchema.virtual('profilePictureThumb').get(function() {
     if (!this.profilePicture) return null;
     
-    // Si es una URL de Cloudinary, podemos crear una versión thumbnail
     if (this.profilePicture.includes('cloudinary.com')) {
-        // Insertar transformación para thumbnail (100x100)
         return this.profilePicture.replace(
             '/image/upload/',
             '/image/upload/w_100,h_100,c_fill,g_face/'
@@ -157,7 +146,6 @@ userSchema.virtual('profilePictureMedium').get(function() {
     if (!this.profilePicture) return null;
     
     if (this.profilePicture.includes('cloudinary.com')) {
-        // Insertar transformación para mediano (250x250)
         return this.profilePicture.replace(
             '/image/upload/',
             '/image/upload/w_250,h_250,c_fill,g_face/'
@@ -167,10 +155,7 @@ userSchema.virtual('profilePictureMedium').get(function() {
     return this.profilePicture;
 });
 
-// =============================
-// VIRTUALS PARA SISTEMA DE SEGUIMIENTO
-// =============================
-
+// Virtuals per seguiment
 userSchema.virtual('followersCount').get(function() {
     return this.followers ? this.followers.length : 0;
 });
@@ -191,9 +176,6 @@ userSchema.virtual('followRatio').get(function() {
     return parseFloat((followersCount / followingCount).toFixed(2));
 });
 
-// =============================
-// MÉTODOS DEL SCHEMA
-// =============================
 
 userSchema.methods.getCloudinaryPublicId = function() {
     if (!this.profilePicture || !this.profilePicture.includes('cloudinary.com')) {
@@ -210,19 +192,18 @@ userSchema.methods.getCloudinaryPublicId = function() {
     }
 };
 
-// Método para verificar si sigue a un usuario específico
+// Verificar si segueix un usuari específic
 userSchema.methods.isFollowing = function(userId: string | Types.ObjectId) {
     const targetId = typeof userId === 'string' ? new mongoose.Types.ObjectId(userId) : userId;
     return this.following.some((id: Types.ObjectId) => id.equals(targetId));
 };
 
-// Método para verificar si es seguido por un usuario específico
+// Verificar si és seguit per un usuari específic
 userSchema.methods.isFollowedBy = function(userId: string | Types.ObjectId) {
     const targetId = typeof userId === 'string' ? new mongoose.Types.ObjectId(userId) : userId;
     return this.followers.some((id: Types.ObjectId) => id.equals(targetId));
 };
 
-// Método para obtener información básica del usuario (sin datos sensibles)
 userSchema.methods.getPublicProfile = function() {
     return {
         id: this._id,
@@ -241,7 +222,7 @@ userSchema.methods.getPublicProfile = function() {
     };
 };
 
-// Método para obtener estadísticas de seguimiento
+// Mètode per obtenir estadístiques de seguiment
 userSchema.methods.getFollowStats = function() {
     return {
         followersCount: this.followersCount,
@@ -251,15 +232,11 @@ userSchema.methods.getFollowStats = function() {
     };
 };
 
-// =============================
-// MIDDLEWARES Y HOOKS
-// =============================
-
-// Asegurar que los virtuals se incluyan en JSON
+// Assegurar que els virtuals s'inclouen en JSON
 userSchema.set('toJSON', { 
     virtuals: true,
     transform: function(doc, ret) {
-        // Eliminar campos sensibles al serializar
+        // Eliminar camps sensibles
         delete ret.password;
         delete ret.refreshToken;
         return ret;
@@ -268,7 +245,7 @@ userSchema.set('toJSON', {
 
 userSchema.set('toObject', { virtuals: true });
 
-// Pre-hooks existentes para visibilidad
+// Pre-hooks existents per visibilitat
 userSchema.pre('find', function() {
     const includeInvisible = (this as any)._mongooseOptions?.includeInvisible;
     if (!includeInvisible) {
@@ -291,13 +268,13 @@ userSchema.pre('findOneAndUpdate', function() {
 userSchema.pre('findOneAndDelete', async function() {
     const user = await this.model.findOne(this.getQuery());
     if (user) {
-        // Remover este usuario de las listas following de sus seguidores
+        // Esborrar aquest usuari de les llistes de followers dels que el segueixen
         await this.model.updateMany(
             { _id: { $in: user.followers } },
             { $pull: { following: user._id } }
         );
         
-        // Remover este usuario de las listas followers de los que sigue
+        // Esborrar aquest usuari de les llistes de followers dels que el segueixen
         await this.model.updateMany(
             { _id: { $in: user.following } },
             { $pull: { followers: user._id } }
@@ -305,17 +282,13 @@ userSchema.pre('findOneAndDelete', async function() {
     }
 });
 
-// =============================
-// ÍNDICES PARA PERFORMANCE
-// =============================
 
-// Índices para mejorar performance en consultas de seguimiento
+// Índex per millorar consultes de seguiment
 userSchema.index({ followers: 1 });
 userSchema.index({ following: 1 });
 userSchema.index({ username: 1, visibility: 1 });
 userSchema.index({ createdAt: -1 });
 
-// Índice compuesto para búsquedas
 userSchema.index({ 
     username: 'text', 
     bio: 'text' 
@@ -325,10 +298,6 @@ userSchema.index({
         bio: 5
     }
 });
-
-// =============================
-// INTERFACE TYPESCRIPT
-// =============================
 
 export interface IUser extends Document {
     _id: Types.ObjectId;
@@ -354,7 +323,7 @@ export interface IUser extends Document {
     refreshToken?: string;
     fcmToken?: string;
     fcmTokens?: string[]; // per compatibilitat amb múltiples dispositius
-    fcmTokenUpdatedAt?: Date; //data de l'última actualització del token FCM
+    fcmTokenUpdatedAt?: Date; // data de l'última actualització del token FCM
     notificationSettings?: {     // Configuració de notificacions
         friendRequests: boolean;
         activityUpdates: boolean;
@@ -363,17 +332,16 @@ export interface IUser extends Document {
         chatMessages: boolean;
     };
 
-    // Sistema de seguimiento
+    // Sistema de seguiment
     followers: Types.ObjectId[];
     following: Types.ObjectId[];
     
-    // Virtuals de seguimiento
+    // Virtuals de seguiment
     followersCount: number;
     followingCount: number;
     isPopular: boolean;
     followRatio: number;
     
-    // Métodos
 
     getCloudinaryPublicId(): string | null;
     isFollowing(userId: string | Types.ObjectId): boolean;

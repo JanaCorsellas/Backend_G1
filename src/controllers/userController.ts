@@ -1,4 +1,3 @@
-// src/controllers/userController.ts - Completo con Sistema de Seguimiento
 import { Request, Response } from 'express';
 import User from '../models/user';
 import { deleteActivity } from '../services/activityService';
@@ -14,9 +13,7 @@ import {
 import admin from '../config/firebaseAdmin';
 import { createFollowerNotificationWithFCM } from '../services/notificationService';
 
-/**
- * Crear un nou usuari
- */
+// Crear un nou usuari
 export const createUser = async (req: Request, res: Response): Promise<void> => {
   try {
     const { username, email, password, profilePicture, bio, role } = req.body;
@@ -81,9 +78,7 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
   }
 };
 
-/**
- * Iniciar sessió
- */
+// Iniciar sessió
 export const loginUser = async (req: Request, res: Response): Promise<void> => {
   try {
     const { username, password } = req.body;
@@ -128,9 +123,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-/**
- * Obtenir tots els usuaris
- */
+// Obtenir tots els usuaris
 export const getUsers = async (req: Request, res: Response): Promise<void> => {
   try {
     // Obtenir pàgina i límit dels paràmetres de consulta
@@ -158,9 +151,7 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-/**
- * Obtenir un usuari per ID
- */
+// Obtenir un usuari per ID
 export const getUserById = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.params.id;
@@ -179,9 +170,7 @@ export const getUserById = async (req: Request, res: Response): Promise<void> =>
   }
 };
 
-/**
- * Actualitzar un usuari
- */
+// Actualitzar un usuari
 export const updateUser = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.params.id;
@@ -223,9 +212,7 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
   }
 };
 
-/**
- * Eliminar un usuari
- */
+// Eliminar un usuari
 export const deleteUser = async (req: Request, res: Response): Promise<void> => {
   try{
     const user = await userService.getUserById(req.params.id);
@@ -245,9 +232,7 @@ export const deleteUser = async (req: Request, res: Response): Promise<void> => 
   }
 };
 
-/**
- * Alternar visibilitat d'un usuari
- */
+// Alternar visibilitat d'un usuari
 export const toggleUserVisibility = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.params.id;
@@ -304,9 +289,7 @@ export const toggleUserVisibility = async (req: Request, res: Response): Promise
   }
 };
 
-/**
- * Buscar usuarios
- */
+// Buscar usuaris
 export const searchUsers = async (req: Request, res: Response): Promise<void> => {
   try {
     const search = req.query.search?.toString() || '';
@@ -332,7 +315,7 @@ export const searchUsers = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    console.log(`✅ Encontrados ${users.length} usuarios con datos de seguimiento`);
+    console.log(`Encontrados ${users.length} usuarios con datos de seguimiento`);
 
     res.status(200).json({
       message: 'Users found successfully',
@@ -348,9 +331,7 @@ export const searchUsers = async (req: Request, res: Response): Promise<void> =>
   }
 };
 
-/**
- * Upload profile picture
- */
+// Actualitzar foto de perfil
 export const uploadProfilePictureCloudinary = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.params.userId;
@@ -426,7 +407,7 @@ export const uploadProfilePictureCloudinary = async (req: Request, res: Response
       }
     });
   } catch (error: any) {
-    console.error('❌ Error uploading profile picture:', error);
+    console.error('Error uploading profile picture:', error);
     res.status(500).json({ 
       message: 'Error subiendo imagen de perfil',
       error: error.message
@@ -434,9 +415,7 @@ export const uploadProfilePictureCloudinary = async (req: Request, res: Response
   }
 };
 
-/**
- * Delete profile picture
- */
+// Eliminar foto de perfil
 export const deleteProfilePictureCloudinary = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.params.userId;
@@ -464,10 +443,10 @@ export const deleteProfilePictureCloudinary = async (req: Request, res: Response
         if (publicId) {
           const result = await cloudinary.uploader.destroy(publicId);
           cloudinaryDeleted = result.result === 'ok';
-          console.log(`🗑️ Resultado eliminación Cloudinary:`, result);
+          console.log(`Resultado eliminación Cloudinary:`, result);
         }
       } catch (cloudinaryError) {
-        console.warn('⚠️ Error eliminando de Cloudinary:', cloudinaryError);
+        console.warn('Error eliminando de Cloudinary:', cloudinaryError);
       }
     }
     
@@ -498,7 +477,7 @@ export const deleteProfilePictureCloudinary = async (req: Request, res: Response
       }
     });
   } catch (error: any) {
-    console.error('❌ Error deleting profile picture:', error);
+    console.error('Error deleting profile picture:', error);
     res.status(500).json({ 
       message: 'Error eliminando imagen de perfil',
       error: error.message
@@ -510,9 +489,7 @@ export const deleteProfilePictureCloudinary = async (req: Request, res: Response
 // CONTROLADORES DE SEGUIMIENTO
 // =============================
 
-/**
- * Obtener seguidores de un usuario
- */
+// Obtener seguidores de un usuario
 export const getUserFollowersController = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.params.id;
@@ -534,9 +511,7 @@ export const getUserFollowersController = async (req: Request, res: Response): P
   }
 };
 
-/**
- * Obtener usuarios que sigue un usuario
- */
+// Obtener usuarios que sigue un usuario
 export const getUserFollowingController = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.params.id;
@@ -558,9 +533,7 @@ export const getUserFollowingController = async (req: Request, res: Response): P
   }
 };
 
-/**
- * Seguir a un usuario
- */
+// Seguir a un usuario
 export const followUserController = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.params.userId;
@@ -604,9 +577,7 @@ export const followUserController = async (req: Request, res: Response): Promise
   }
 };
 
-/**
- * Dejar de seguir a un usuario
- */
+// Dejar de seguir a un usuario
 export const unfollowUserController = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.params.userId;
@@ -634,9 +605,7 @@ export const unfollowUserController = async (req: Request, res: Response): Promi
   }
 };
 
-/**
- * Verificar estado de seguimiento entre dos usuarios
- */
+// Verificar estado de seguimiento entre dos usuarios
 export const checkFollowStatusController = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.params.userId;
@@ -661,9 +630,7 @@ export const checkFollowStatusController = async (req: Request, res: Response): 
   }
 };
 
-/**
- * Obtener estadísticas de seguimiento de un usuario
- */
+// Obtener estadísticas de seguimiento de un usuario
 export const getUserFollowStatsController = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.params.id;
@@ -691,9 +658,7 @@ export const getUserFollowStatsController = async (req: Request, res: Response):
   }
 };
 
-/**
- * Obtener usuarios sugeridos para seguir
- */
+// Obtener usuarios sugeridos para seguir
 export const getSuggestedUsersController = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.params.id;
@@ -717,9 +682,7 @@ export const getSuggestedUsersController = async (req: Request, res: Response): 
   }
 };
 
-/**
- * Buscar usuarios para seguir
- */
+// Buscar usuarios para seguir
 export const searchUsersToFollowController = async (req: Request, res: Response): Promise<void> => {
   try {
     const currentUserId = req.params.userId;
@@ -757,9 +720,7 @@ export const deleteProfilePicture = deleteProfilePictureCloudinary;
 // Mantener compatibilidad con funciones existentes
 export const startFollowingUserController = followUserController;
 
-/**
- * Actualizar FCM token del usuario
- */
+// Actualizar FCM token del usuario
 export const updateFcmToken = async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId } = req.params;
@@ -816,9 +777,7 @@ export const updateFcmToken = async (req: Request, res: Response): Promise<void>
   }
 };
 
-/**
- * Enviar notificación de prueba usando Firebase Admin (CORREGIDO)
- */
+// Enviar notificación de prueba usando Firebase Admin
 export const sendTestNotification = async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId } = req.params;
@@ -892,14 +851,12 @@ export const sendTestNotification = async (req: Request, res: Response): Promise
 };
 
 
-/**
- * Obtener estadísticas básicas de FCM tokens
- */
+// Obtener estadísticas básicas de FCM tokens
 export const getFcmTokenStats = async (req: Request, res: Response): Promise<void> => {
   try {
     console.log(`Obteniendo estadísticas básicas de FCM tokens`);
 
-    // CORRECTO: Import sin extensión .js
+    // Import sin extensión .js
     const totalUsers = await User.countDocuments();
     const usersWithTokens = await User.countDocuments({ 
       fcmToken: { $exists: true, $ne: null } 

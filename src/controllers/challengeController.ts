@@ -38,9 +38,7 @@ export const getChallengeByIdController = async(req: Request, res: Response)=>{
     }    
 };
 
-/**
- * Obtenir tots els reptes
- */
+// Obtenir tots els reptes
 export const getChallengesController = async (req: Request, res: Response): Promise<void> => {
   try {
     // Obtenir pàgina i límit dels paràmetres de consulta

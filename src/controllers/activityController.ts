@@ -8,7 +8,6 @@ import {
     getAllActivities,
     updateActivity, 
     deleteActivity, 
-    //getActivitiesByUserIdPaginated
 } from '../services/activityService';
 
 import { Request, Response } from 'express';
@@ -57,7 +56,6 @@ export const getActivitiesHandler = async (req: Request, res: Response) => {
         res.status(500).json({ message: error.message });
     }
 };
-
 
 // Actualitzar una activitat
 export const updateActivityController = async (req: Request, res: Response) => {
@@ -118,20 +116,19 @@ export const getFollowingActivitiesController = async (req: Request, res: Respon
     // Obtener actividades de los usuarios seguidos
     const skip = (page - 1) * limit;
     
-    console.log(`📊 Querying activities from ${user.following.length} followed users...`);
+    console.log(`Querying activities from ${user.following.length} followed users...`);
     
-    // ✅ CORREGIDO: Usar 'author' en lugar de 'user' y ajustar el populate
     const activities = await ActivityModel.find({
       author: { $in: user.following }
     })
-    .populate('author', 'username profilePicture profilePictureUrl level email _id') // ✅ AGREGADO: profilePictureUrl también
+    .populate('author', 'username profilePicture profilePictureUrl level email _id')
     .populate('route', 'name difficulty')
     .sort({ createdAt: -1 }) // Más recientes primero
     .skip(skip)
     .limit(limit)
     .lean();
 
-    console.log(`📋 Found ${activities.length} activities`);
+    console.log(`Found ${activities.length} activities`);
 
     // Contar total de actividades de seguidos
     const totalActivities = await ActivityModel.countDocuments({
@@ -141,9 +138,8 @@ export const getFollowingActivitiesController = async (req: Request, res: Respon
     const totalPages = Math.ceil(totalActivities / limit);
     const hasMore = page < totalPages;
 
-    console.log(`📈 Total: ${totalActivities}, Pages: ${totalPages}, HasMore: ${hasMore}`);
+    console.log(`Total: ${totalActivities}, Pages: ${totalPages}, HasMore: ${hasMore}`);
 
-    // ✅ MEJORADO: Transformar los datos para incluir toda la información del usuario
     interface PopulatedAuthor {
       _id: string;
       username?: string;
@@ -177,7 +173,7 @@ export const getFollowingActivitiesController = async (req: Request, res: Respon
     });
 
   } catch (error: any) {
-    console.error('❌ Error al obtener actividades de seguidos:', error);
+    console.error('Error al obtener actividades de seguidos:', error);
     res.status(500).json({ message: error.message });
   }
 };

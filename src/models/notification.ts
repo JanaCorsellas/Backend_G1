@@ -1,4 +1,3 @@
-// src/models/notification.ts
 import mongoose, { Schema, Types, Document } from "mongoose";
 
 const notificationSchema = new Schema({
@@ -39,7 +38,7 @@ const notificationSchema = new Schema({
     read: {
         type: Boolean,
         default: false,
-        index: true // Para optimizar consultas de no leídas
+        index: true // Per optimitzar consultes no llegides
     },
     readAt: {
         type: Date,
@@ -173,13 +172,11 @@ export interface INotification extends Document {
     createdAt: Date;
     updatedAt: Date;
     
-    // Métodos de instancia
     markAsRead(): Promise<INotification>;
     getSummary(): any;
     isExpired(): boolean;
 }
 
-// Interfaces para métodos estáticos
 export interface INotificationModel extends mongoose.Model<INotification> {
     markAllAsRead(userId: string): Promise<any>;
     deleteOldNotifications(daysOld?: number): Promise<any>;

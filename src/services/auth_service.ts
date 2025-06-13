@@ -4,9 +4,7 @@ import User, { IUser } from "../models/user";
 import { Auth } from "../models/auth_model";
 import axios from 'axios';
 
-/**
- * Registra un nuevo usuario en el sistema
- */
+// Registrar un nou usuari al sistema
 const registerNewUser = async (userData: { username: string; email: string; password: string }) => {
     const existingUser = await User.findOne({ email: userData.email });
     if (existingUser) return "ALREADY_USER";
@@ -48,9 +46,7 @@ const registerNewUser = async (userData: { username: string; email: string; pass
     };
 };
 
-/**
- * Autenticación de usuario mediante email y contraseña
- */
+// Autenticació d'usuari mitjançant email y contrasenya
 const loginUser = async ({ email, password, username }: Auth) => {
     // Verificamos si el usuario existe
     const checkIs = await User.findOne({ email });
@@ -84,9 +80,7 @@ const loginUser = async ({ email, password, username }: Auth) => {
     return data;
 };
 
-/**
- * Refresca un token de acceso utilizando un refresh token
- */
+// Refresca un token d'accés utilitzant un refresh token
 const refreshUserToken = async (refreshToken: string) => {
     // Verificamos que el refresh token sea válido
     const payload = verifyRefreshToken(refreshToken);
@@ -123,18 +117,14 @@ const refreshUserToken = async (refreshToken: string) => {
     };
 };
 
-/**
- * Cierra la sesión de un usuario invalidando su refresh token
- */
+// Tanca la sessió d'un usuari invalidant el seu refresh token
 const logoutUser = async (userId: string) => {
     // Actualizamos el refresh token a null para invalidarlo
     await User.updateOne({ email: userId }, { refreshToken: null });
     return true;
 };
 
-/**
- * Autenticación mediante Google OAuth
- */
+// Autenticació mitjançant Google OAuth
 const googleAuth = async (code: string) => {
     try {
         // Verificamos que las variables de entorno estén configuradas

@@ -61,12 +61,12 @@ export interface IActivity {
     name: string;
     startTime: Date; 
     endTime: Date;
-    duration: number;//minutos
+    duration: number; // minutos
     distance: number;
     elevationGain: number;
     averageSpeed: number;
-    caloriesBurned?: number; //almacenar en minutos
-    route: mongoose.Types.ObjectId[]; //ruta enregistrada (llista de punts gps)
+    caloriesBurned?: number; // almacenar en minutos
+    route: mongoose.Types.ObjectId[]; // ruta enregistrada (llista de punts gps)
     musicPlaylist: mongoose.Types.ObjectId[];
     type:"running"|"cycling"|"hiking"|"walking";
 }

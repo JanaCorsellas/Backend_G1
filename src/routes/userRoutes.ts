@@ -4,9 +4,6 @@ import { uploadProfilePictureCloudinary } from '../middleware/cloudinaryUpload';
 
 const router = Router();
 
-// =============================
-// RUTAS BÁSICAS DE USUARIOS
-// =============================
 /**
  * @openapi
  * /api/users/search:
@@ -704,9 +701,9 @@ router.get('/:id/suggested', userController.getSuggestedUsersController);
  */
 router.get('/:userId/search-to-follow', userController.searchUsersToFollowController);
 
-// =============================
-// RUTAS DE COMPATIBILIDAD (mantener las existentes)
-// =============================
+// ========================
+// RUTAS DE COMPATIBILIDAD
+// ========================
 
 /**
  * @openapi
