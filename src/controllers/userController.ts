@@ -176,17 +176,62 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
     const userId = req.params.id;
     const updates = req.body;
     
+    console.log("=== UPDATE USER DEBUG ===");
+    console.log("User ID:", userId);
+    console.log("Request body:", updates);
+    console.log("Has currentPassword:", !!updates.currentPassword);
+    console.log("Has password:", !!updates.password);
+    
     // Validar el rol si se está actualizando
     if (updates.role && !['user', 'admin'].includes(updates.role)) {
       res.status(400).json({ message: 'Invalid role. Allowed values are "user" or "admin"' });
       return;
     }
     
-    // Si se actualiza la contraseña, hashearla
-    if (updates.password) {
+    // VALIDACIÓN ESPECIAL PARA CAMBIO DE CONTRASEÑA
+    if (updates.password && updates.currentPassword) {
+      console.log("Procesando cambio de contraseña...");
+      
+      // Buscar el usuario actual
+      const currentUser = await User.findById(userId);
+      
+      if (!currentUser) {
+        console.log("Usuario no encontrado");
+        res.status(404).json({ message: 'User not found' });
+        return;
+      }
+      
+      console.log("Usuario encontrado, verificando contraseña actual...");
+      
+      // Verificar que la contraseña actual sea correcta
+      const isCurrentPasswordValid = await bcrypt.compare(updates.currentPassword, currentUser.password);
+      
+      console.log("¿Contraseña actual válida?", isCurrentPasswordValid);
+      
+      if (!isCurrentPasswordValid) {
+        console.log("Contraseña actual incorrecta - enviando error 401");
+        res.status(401).json({ message: 'Current password is incorrect' });
+        return;
+      }
+      
+      console.log("Contraseña actual correcta, hasheando nueva contraseña...");
+      
+      // Si la contraseña actual es correcta, hashear la nueva contraseña
       const salt = await bcrypt.genSalt(10);
       updates.password = await bcrypt.hash(updates.password, salt);
+      
+      // Eliminar currentPassword del objeto updates para que no se guarde en la BD
+      delete updates.currentPassword;
+      
+      console.log("Nueva contraseña hasheada correctamente");
+    } else if (updates.password) {
+      console.log("Intento de cambio de contraseña sin contraseña actual");
+      // Si se intenta cambiar la contraseña sin proporcionar la actual, rechazar
+      res.status(400).json({ message: 'Current password is required to change password' });
+      return;
     }
+    
+    console.log("Actualizando usuario en la base de datos...");
     
     // Añadir fecha de actualización
     updates.updatedAt = new Date();
@@ -198,9 +243,13 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
     ).select('-password');
     
     if (!updatedUser) {
+      console.log("Usuario no encontrado para actualizar");
       res.status(404).json({ message: 'User not found' });
       return;
     }
+    
+    console.log("Usuario actualizado exitosamente");
+    console.log("=== END UPDATE DEBUG ===");
     
     res.status(200).json({
       message: 'User updated successfully',
