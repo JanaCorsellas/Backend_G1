@@ -280,7 +280,6 @@ const checkAchievementCondition = async (achievement: IAchievement, user: any): 
     }
 };
 
-// Añade estas nuevas funciones después de initializeDefaultAchievements
 
 // Inicializar logros generales de conteo de actividades
 export const initializeGeneralAchievements = async (): Promise<IAchievement[]> => {

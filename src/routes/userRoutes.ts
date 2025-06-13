@@ -4,9 +4,6 @@ import { uploadProfilePictureCloudinary } from '../middleware/cloudinaryUpload';
 
 const router = Router();
 
-// =============================
-// RUTAS BÁSICAS DE USUARIOS
-// =============================
 /**
  * @openapi
  * /api/users/search:
@@ -704,9 +701,9 @@ router.get('/:id/suggested', userController.getSuggestedUsersController);
  */
 router.get('/:userId/search-to-follow', userController.searchUsersToFollowController);
 
-// =============================
-// RUTAS DE COMPATIBILIDAD (mantener las existentes)
-// =============================
+// ========================
+// RUTAS DE COMPATIBILIDAD
+// ========================
 
 /**
  * @openapi
@@ -765,5 +762,175 @@ router.put('/followers/:userId/:targetUserId', userController.startFollowingUser
  *         description: Error fetching user followers
  */
 router.get('/followers/:id', userController.getUserFollowersController);
+
+/**
+ * @openapi
+ * /api/users/{userId}/fcm-token:
+ *   post:
+ *     summary: Actualizar FCM token del usuario
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del usuario
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - fcmToken
+ *             properties:
+ *               fcmToken:
+ *                 type: string
+ *                 description: Token FCM del dispositivo
+ *                 example: "c-gvd79xZPnXGGXmB7aAip:APA91bE..."
+ *               platform:
+ *                 type: string
+ *                 enum: [web, android, ios]
+ *                 default: web
+ *                 description: Plataforma del dispositivo
+ *     responses:
+ *       200:
+ *         description: FCM token actualizado correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "FCM token actualizado correctamente"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     userId:
+ *                       type: string
+ *                     platform:
+ *                       type: string
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *       400:
+ *         description: FCM token requerido
+ *       404:
+ *         description: Usuario no encontrado
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.post('/:userId/fcm-token', userController.updateFcmToken);
+
+/**
+ * @openapi
+ * /api/users/{userId}/test-notification:
+ *   post:
+ *     summary: Enviar notificación de prueba al usuario
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del usuario
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 default: "Notificación de prueba"
+ *                 description: Título de la notificación
+ *               message:
+ *                 type: string
+ *                 default: "Esta es una prueba desde el backend"
+ *                 description: Mensaje de la notificación
+ *     responses:
+ *       200:
+ *         description: Notificación enviada correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Notificación de prueba enviada correctamente"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     userId:
+ *                       type: string
+ *                     username:
+ *                       type: string
+ *                     fcmResponse:
+ *                       type: string
+ *                     sentAt:
+ *                       type: string
+ *                       format: date-time
+ *       400:
+ *         description: Usuario no tiene FCM token configurado
+ *       404:
+ *         description: Usuario no encontrado o sin FCM token
+ *       500:
+ *         description: Error enviando notificación
+ */
+router.post('/:userId/test-notification', userController.sendTestNotification);
+
+/**
+ * @openapi
+ * /api/users/fcm-stats:
+ *   get:
+ *     summary: Obtener estadísticas de FCM tokens (Admin)
+ *     tags: [Users]
+ *     responses:
+ *       200:
+ *         description: Estadísticas obtenidas correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     totalUsers:
+ *                       type: number
+ *                       example: 150
+ *                       description: Total de usuarios registrados
+ *                     usersWithTokens:
+ *                       type: number
+ *                       example: 120
+ *                       description: Usuarios con FCM token configurado
+ *                     percentage:
+ *                       type: string
+ *                       example: "80.00"
+ *                       description: Porcentaje de adopción de notificaciones
+ *                     retrievedAt:
+ *                       type: string
+ *                       format: date-time
+ *                     description:
+ *                       type: string
+ *                       example: "Estadísticas básicas de FCM tokens"
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.get('/fcm-stats', userController.getFcmTokenStats);
 
 export default router;

@@ -1,10 +1,7 @@
-// src/controllers/notificationController.ts
 import { Request, Response } from 'express';
 import * as notificationService from '../services/notificationService';
 
-/**
- * Obtener notificaciones de un usuario
- */
+// Obtener notificaciones de un usuario
 export const getUserNotificationsController = async (req: Request, res: Response): Promise<void> => {
     try {
         const userId = req.params.userId;
@@ -17,7 +14,6 @@ export const getUserNotificationsController = async (req: Request, res: Response
             return;
         }
 
-        // Validar parámetros de paginación
         if (page < 1 || limit < 1 || limit > 100) {
             res.status(400).json({ message: 'Invalid pagination parameters' });
             return;
@@ -27,7 +23,11 @@ export const getUserNotificationsController = async (req: Request, res: Response
 
         res.status(200).json({
             message: 'Notifications retrieved successfully',
-            ...result
+            notifications: result.notifications,
+            totalNotifications: result.totalNotifications,
+            unreadCount: result.unreadCount,
+            totalPages: result.totalPages,
+            currentPage: result.currentPage
         });
     } catch (error) {
         console.error('Error getting user notifications:', error);
@@ -35,9 +35,7 @@ export const getUserNotificationsController = async (req: Request, res: Response
     }
 };
 
-/**
- * Marcar notificación como leída
- */
+// Marcar notificación como leída
 export const markNotificationAsReadController = async (req: Request, res: Response): Promise<void> => {
     try {
         const { notificationId } = req.params;
@@ -65,9 +63,7 @@ export const markNotificationAsReadController = async (req: Request, res: Respon
     }
 };
 
-/**
- * Marcar todas las notificaciones como leídas
- */
+// Marcar todas las notificaciones como leídas
 export const markAllNotificationsAsReadController = async (req: Request, res: Response): Promise<void> => {
     try {
         const userId = req.params.userId;
@@ -89,9 +85,7 @@ export const markAllNotificationsAsReadController = async (req: Request, res: Re
     }
 };
 
-/**
- * Eliminar notificación
- */
+// Eliminar notificación
 export const deleteNotificationController = async (req: Request, res: Response): Promise<void> => {
     try {
         const { notificationId } = req.params;
@@ -118,9 +112,7 @@ export const deleteNotificationController = async (req: Request, res: Response):
     }
 };
 
-/**
- * Obtener conteo de notificaciones no leídas
- */
+// Obtener conteo de notificaciones no leídas
 export const getUnreadCountController = async (req: Request, res: Response): Promise<void> => {
     try {
         const userId = req.params.userId;
@@ -142,9 +134,7 @@ export const getUnreadCountController = async (req: Request, res: Response): Pro
     }
 };
 
-/**
- * Crear notificación de prueba (solo para testing)
- */
+// Crear notificación de prueba (solo para testing)
 export const createTestNotificationController = async (req: Request, res: Response): Promise<void> => {
     try {
         const { userId, type, title, message, data } = req.body;
@@ -159,7 +149,7 @@ export const createTestNotificationController = async (req: Request, res: Respon
         // Obtener Socket.IO desde el contexto global (si está disponible)
         const socketIO = (global as any).io;
 
-        const notification = await notificationService.createAndSendNotification({
+        const notification = await notificationService.createAndSendNotificationWithFCM({
             userId,
             type,
             title,
@@ -177,9 +167,7 @@ export const createTestNotificationController = async (req: Request, res: Respon
     }
 };
 
-/**
- * Obtener estadísticas de notificaciones
- */
+// Obtener estadísticas de notificacione
 export const getNotificationStatsController = async (req: Request, res: Response): Promise<void> => {
     try {
         const userId = req.params.userId;
@@ -214,9 +202,7 @@ export const getNotificationStatsController = async (req: Request, res: Response
     }
 };
 
-/**
- * Limpiar notificaciones antiguas
- */
+// Limpiar notificaciones antiguas
 export const cleanupOldNotificationsController = async (req: Request, res: Response): Promise<void> => {
     try {
         const daysOld = parseInt(req.query.days?.toString() || '30', 10);

@@ -9,23 +9,23 @@ export const challengeSchema = new Schema<IChallenge>({
         type: String, 
         required: true
     }, 
-    goalType: { //Pot ser distància, temps, velocitat, etc
+    goalType: { // Pot ser distància, temps, velocitat, etc
         type: String, 
         required: true
     },
-    goalValue: { //Valor de la meta, pot ser 5km, 10min, 20km/h, etc
+    goalValue: { // Valor de la meta, pot ser 5km, 10min, 20km/h, etc
         type: String, 
         required: true
     },
-    reward: { //Recompensa en punts
+    reward: { // Recompensa en punts
         type: Number,
         required: true
     },
-    startDate: { //Data d'inici del repte
+    startDate: { // Data d'inici del repte
         type: Date,
         required: true
     },
-    endDate: { //Data de finalització del repte
+    endDate: { // Data de finalització del repte
         type: Date,
         required: true
     }

@@ -1,4 +1,3 @@
-// src/controllers/userController.ts - Completo con Sistema de Seguimiento
 import { Request, Response } from 'express';
 import User from '../models/user';
 import { deleteActivity } from '../services/activityService';
@@ -7,10 +6,14 @@ import * as userService from '../services/userService';
 import mongoose from 'mongoose';
 import { cloudinary } from '../config/cloudinary';
 import { extractPublicIdFromUrl } from '../middleware/cloudinaryUpload';
+import { 
+  updateFcmToken as updateFcmTokenService, 
+  getUsersWithFcmTokens 
+} from '../services/userService';
+import admin from '../config/firebaseAdmin';
+import { createFollowerNotificationWithFCM } from '../services/notificationService';
 
-/**
- * Crear un nou usuari
- */
+// Crear un nou usuari
 export const createUser = async (req: Request, res: Response): Promise<void> => {
   try {
     const { username, email, password, profilePicture, bio, role } = req.body;
@@ -75,9 +78,7 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
   }
 };
 
-/**
- * Iniciar sessió
- */
+// Iniciar sessió
 export const loginUser = async (req: Request, res: Response): Promise<void> => {
   try {
     const { username, password } = req.body;
@@ -122,9 +123,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-/**
- * Obtenir tots els usuaris
- */
+// Obtenir tots els usuaris
 export const getUsers = async (req: Request, res: Response): Promise<void> => {
   try {
     // Obtenir pàgina i límit dels paràmetres de consulta
@@ -152,9 +151,7 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-/**
- * Obtenir un usuari per ID
- */
+// Obtenir un usuari per ID
 export const getUserById = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.params.id;
@@ -173,13 +170,17 @@ export const getUserById = async (req: Request, res: Response): Promise<void> =>
   }
 };
 
-/**
- * Actualitzar un usuari
- */
+// Actualitzar un usuari
 export const updateUser = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.params.id;
     const updates = req.body;
+    
+    console.log("=== UPDATE USER DEBUG ===");
+    console.log("User ID:", userId);
+    console.log("Request body:", updates);
+    console.log("Has currentPassword:", !!updates.currentPassword);
+    console.log("Has password:", !!updates.password);
     
     // Validar el rol si se está actualizando
     if (updates.role && !['user', 'admin'].includes(updates.role)) {
@@ -187,11 +188,50 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
       return;
     }
     
-    // Si se actualiza la contraseña, hashearla
-    if (updates.password) {
+    // VALIDACIÓN ESPECIAL PARA CAMBIO DE CONTRASEÑA
+    if (updates.password && updates.currentPassword) {
+      console.log("Procesando cambio de contraseña...");
+      
+      // Buscar el usuario actual
+      const currentUser = await User.findById(userId);
+      
+      if (!currentUser) {
+        console.log("Usuario no encontrado");
+        res.status(404).json({ message: 'User not found' });
+        return;
+      }
+      
+      console.log("Usuario encontrado, verificando contraseña actual...");
+      
+      // Verificar que la contraseña actual sea correcta
+      const isCurrentPasswordValid = await bcrypt.compare(updates.currentPassword, currentUser.password);
+      
+      console.log("¿Contraseña actual válida?", isCurrentPasswordValid);
+      
+      if (!isCurrentPasswordValid) {
+        console.log("Contraseña actual incorrecta - enviando error 401");
+        res.status(401).json({ message: 'Current password is incorrect' });
+        return;
+      }
+      
+      console.log("Contraseña actual correcta, hasheando nueva contraseña...");
+      
+      // Si la contraseña actual es correcta, hashear la nueva contraseña
       const salt = await bcrypt.genSalt(10);
       updates.password = await bcrypt.hash(updates.password, salt);
+      
+      // Eliminar currentPassword del objeto updates para que no se guarde en la BD
+      delete updates.currentPassword;
+      
+      console.log("Nueva contraseña hasheada correctamente");
+    } else if (updates.password) {
+      console.log("Intento de cambio de contraseña sin contraseña actual");
+      // Si se intenta cambiar la contraseña sin proporcionar la actual, rechazar
+      res.status(400).json({ message: 'Current password is required to change password' });
+      return;
     }
+    
+    console.log("Actualizando usuario en la base de datos...");
     
     // Añadir fecha de actualización
     updates.updatedAt = new Date();
@@ -203,9 +243,13 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
     ).select('-password');
     
     if (!updatedUser) {
+      console.log("Usuario no encontrado para actualizar");
       res.status(404).json({ message: 'User not found' });
       return;
     }
+    
+    console.log("Usuario actualizado exitosamente");
+    console.log("=== END UPDATE DEBUG ===");
     
     res.status(200).json({
       message: 'User updated successfully',
@@ -217,9 +261,7 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
   }
 };
 
-/**
- * Eliminar un usuari
- */
+// Eliminar un usuari
 export const deleteUser = async (req: Request, res: Response): Promise<void> => {
   try{
     const user = await userService.getUserById(req.params.id);
@@ -239,9 +281,7 @@ export const deleteUser = async (req: Request, res: Response): Promise<void> => 
   }
 };
 
-/**
- * Alternar visibilitat d'un usuari
- */
+// Alternar visibilitat d'un usuari
 export const toggleUserVisibility = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.params.id;
@@ -298,9 +338,7 @@ export const toggleUserVisibility = async (req: Request, res: Response): Promise
   }
 };
 
-/**
- * Buscar usuarios
- */
+// Buscar usuaris
 export const searchUsers = async (req: Request, res: Response): Promise<void> => {
   try {
     const search = req.query.search?.toString() || '';
@@ -326,7 +364,7 @@ export const searchUsers = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    console.log(`✅ Encontrados ${users.length} usuarios con datos de seguimiento`);
+    console.log(`Encontrados ${users.length} usuarios con datos de seguimiento`);
 
     res.status(200).json({
       message: 'Users found successfully',
@@ -342,9 +380,7 @@ export const searchUsers = async (req: Request, res: Response): Promise<void> =>
   }
 };
 
-/**
- * Upload profile picture
- */
+// Actualitzar foto de perfil
 export const uploadProfilePictureCloudinary = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.params.userId;
@@ -381,13 +417,13 @@ export const uploadProfilePictureCloudinary = async (req: Request, res: Response
     // Eliminar imagen anterior si existe
     if (user.profilePicture) {
       try {
-        const publicId = extractPublicIdFromUrl(user.profilePicture);
-        if (publicId) {
-          await cloudinary.uploader.destroy(publicId);
-          console.log(`✅ Imagen anterior eliminada: ${publicId}`);
-        }
+      const publicId = extractPublicIdFromUrl(user.profilePicture);
+      if (publicId) {
+        await cloudinary.uploader.destroy(publicId);
+        console.log(`Imagen anterior eliminada: ${publicId}`);
+      }
       } catch (deleteError) {
-        console.warn('⚠️ No se pudo eliminar la imagen anterior:', deleteError);
+      console.warn('No se pudo eliminar la imagen anterior:', deleteError);
       }
     }
     
@@ -420,7 +456,7 @@ export const uploadProfilePictureCloudinary = async (req: Request, res: Response
       }
     });
   } catch (error: any) {
-    console.error('❌ Error uploading profile picture:', error);
+    console.error('Error uploading profile picture:', error);
     res.status(500).json({ 
       message: 'Error subiendo imagen de perfil',
       error: error.message
@@ -428,9 +464,7 @@ export const uploadProfilePictureCloudinary = async (req: Request, res: Response
   }
 };
 
-/**
- * Delete profile picture
- */
+// Eliminar foto de perfil
 export const deleteProfilePictureCloudinary = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.params.userId;
@@ -458,10 +492,10 @@ export const deleteProfilePictureCloudinary = async (req: Request, res: Response
         if (publicId) {
           const result = await cloudinary.uploader.destroy(publicId);
           cloudinaryDeleted = result.result === 'ok';
-          console.log(`🗑️ Resultado eliminación Cloudinary:`, result);
+          console.log(`Resultado eliminación Cloudinary:`, result);
         }
       } catch (cloudinaryError) {
-        console.warn('⚠️ Error eliminando de Cloudinary:', cloudinaryError);
+        console.warn('Error eliminando de Cloudinary:', cloudinaryError);
       }
     }
     
@@ -492,7 +526,7 @@ export const deleteProfilePictureCloudinary = async (req: Request, res: Response
       }
     });
   } catch (error: any) {
-    console.error('❌ Error deleting profile picture:', error);
+    console.error('Error deleting profile picture:', error);
     res.status(500).json({ 
       message: 'Error eliminando imagen de perfil',
       error: error.message
@@ -504,9 +538,7 @@ export const deleteProfilePictureCloudinary = async (req: Request, res: Response
 // CONTROLADORES DE SEGUIMIENTO
 // =============================
 
-/**
- * Obtener seguidores de un usuario
- */
+// Obtener seguidores de un usuario
 export const getUserFollowersController = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.params.id;
@@ -528,9 +560,7 @@ export const getUserFollowersController = async (req: Request, res: Response): P
   }
 };
 
-/**
- * Obtener usuarios que sigue un usuario
- */
+// Obtener usuarios que sigue un usuario
 export const getUserFollowingController = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.params.id;
@@ -552,9 +582,7 @@ export const getUserFollowingController = async (req: Request, res: Response): P
   }
 };
 
-/**
- * Seguir a un usuario
- */
+// Seguir a un usuario
 export const followUserController = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.params.userId;
@@ -572,6 +600,22 @@ export const followUserController = async (req: Request, res: Response): Promise
       return;
     }
 
+    try {
+      const follower = await User.findById(userId);
+      if (follower) {
+        console.log(`Enviando notificación de seguidor: ${follower.username} → ${targetUserId}`);
+        await createFollowerNotificationWithFCM(
+          targetUserId,    // Usuario que va a recibir la notificación
+          userId,          // ID del seguidor
+          follower.username // Nombre del seguidor
+        );
+        console.log(`Notificación de seguidor enviada correctamente`);
+      }
+    } catch (notificationError) {
+      console.error('Error enviando notificación de seguidor:', notificationError);
+      // No fallar la operación principal por errores de notificación
+    }
+
     res.status(200).json({
       message: result.message,
       success: true
@@ -582,9 +626,7 @@ export const followUserController = async (req: Request, res: Response): Promise
   }
 };
 
-/**
- * Dejar de seguir a un usuario
- */
+// Dejar de seguir a un usuario
 export const unfollowUserController = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.params.userId;
@@ -612,9 +654,7 @@ export const unfollowUserController = async (req: Request, res: Response): Promi
   }
 };
 
-/**
- * Verificar estado de seguimiento entre dos usuarios
- */
+// Verificar estado de seguimiento entre dos usuarios
 export const checkFollowStatusController = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.params.userId;
@@ -639,9 +679,7 @@ export const checkFollowStatusController = async (req: Request, res: Response): 
   }
 };
 
-/**
- * Obtener estadísticas de seguimiento de un usuario
- */
+// Obtener estadísticas de seguimiento de un usuario
 export const getUserFollowStatsController = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.params.id;
@@ -669,9 +707,7 @@ export const getUserFollowStatsController = async (req: Request, res: Response):
   }
 };
 
-/**
- * Obtener usuarios sugeridos para seguir
- */
+// Obtener usuarios sugeridos para seguir
 export const getSuggestedUsersController = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.params.id;
@@ -695,9 +731,7 @@ export const getSuggestedUsersController = async (req: Request, res: Response): 
   }
 };
 
-/**
- * Buscar usuarios para seguir
- */
+// Buscar usuarios para seguir
 export const searchUsersToFollowController = async (req: Request, res: Response): Promise<void> => {
   try {
     const currentUserId = req.params.userId;
@@ -734,3 +768,171 @@ export const deleteProfilePicture = deleteProfilePictureCloudinary;
 
 // Mantener compatibilidad con funciones existentes
 export const startFollowingUserController = followUserController;
+
+// Actualizar FCM token del usuario
+export const updateFcmToken = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId } = req.params;
+    const { fcmToken, platform = 'web' } = req.body;
+
+    // Validaciones básicas
+    if (!fcmToken) {
+      res.status(400).json({
+        success: false,
+        error: 'FCM token es requerido'
+      });
+      return;
+    }
+
+    if (!userId) {
+      res.status(400).json({
+        success: false,
+        error: 'User ID es requerido'
+      });
+      return;
+    }
+
+    console.log(`Actualizando FCM token para usuario ${userId}`);
+
+    // Llamar a tu método del service
+    const result = await updateFcmTokenService(userId, fcmToken);
+
+    res.status(200).json({
+      success: true,
+      message: 'FCM token actualizado correctamente',
+      data: {
+        userId: userId,
+        platform: platform,
+        updatedAt: new Date().toISOString()
+      }
+    });
+
+    console.log(`FCM token actualizado exitosamente para usuario ${userId}`);
+
+  } catch (error: any) {
+    console.error('Error in updateFcmToken controller:', error);
+    
+    if (error.message === 'Usuario no encontrado') {
+      res.status(404).json({
+        success: false,
+        error: 'Usuario no encontrado'
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: 'Error interno del servidor'
+      });
+    }
+  }
+};
+
+// Enviar notificación de prueba usando Firebase Admin
+export const sendTestNotification = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId } = req.params;
+    const { title = 'Notificación de prueba', message = 'Esta es una prueba desde el backend' } = req.body;
+
+    console.log(`Enviando notificación de prueba a usuario ${userId}`);
+
+    // Usar tu método getUsersWithFcmTokens
+    const users = await getUsersWithFcmTokens([userId]);
+    
+    if (users.length === 0) {
+      res.status(404).json({
+        success: false,
+        error: 'Usuario no encontrado o sin FCM token configurado'
+      });
+      return;
+    }
+
+    const user = users[0];
+
+    // Verificar que el usuario tenga FCM token
+    if (!user.fcmToken) {
+      res.status(400).json({
+        success: false,
+        error: 'Usuario no tiene FCM token configurado'
+      });
+      return;
+    }
+
+    const notificationMessage = {
+      token: user.fcmToken,
+      notification: {
+        title: title,
+        body: message
+      },
+      data: {
+        type: 'test',
+        userId: userId,
+        timestamp: new Date().toISOString()
+      },
+      webpush: {
+        fcmOptions: {
+          link: 'http://localhost:60066/#/notifications'
+        }
+      }
+    };
+
+    const response = await admin.messaging().send(notificationMessage);
+
+    res.status(200).json({
+      success: true,
+      message: 'Notificación de prueba enviada correctamente',
+      data: {
+        userId: userId,
+        username: user.username,
+        fcmResponse: response,
+        sentAt: new Date().toISOString()
+      }
+    });
+
+    console.log(`Notificación de prueba enviada:`, response);
+
+  } catch (error: any) {
+    console.error('Error in sendTestNotification controller:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error enviando notificación de prueba',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+
+// Obtener estadísticas básicas de FCM tokens
+export const getFcmTokenStats = async (req: Request, res: Response): Promise<void> => {
+  try {
+    console.log(`Obteniendo estadísticas básicas de FCM tokens`);
+
+    // Import sin extensión .js
+    const totalUsers = await User.countDocuments();
+    const usersWithTokens = await User.countDocuments({ 
+      fcmToken: { $exists: true, $ne: null } 
+    });
+
+    const stats = {
+      totalUsers,
+      usersWithTokens,
+      percentage: totalUsers > 0 ? (usersWithTokens / totalUsers * 100).toFixed(2) : 0
+    };
+
+    res.status(200).json({
+      success: true,
+      data: {
+        ...stats,
+        retrievedAt: new Date().toISOString(),
+        description: 'Estadísticas básicas de FCM tokens'
+      }
+    });
+
+    console.log(`Estadísticas FCM obtenidas:`, stats);
+
+  } catch (error: any) {
+    console.error('Error in getFcmTokenStats controller:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error interno del servidor'
+    });
+  }
+};

@@ -1,7 +1,7 @@
-// src/services/notificationService.ts
 import NotificationModel, { INotification } from '../models/notification';
 import UserModel from '../models/user';
 import mongoose from 'mongoose';
+import admin from '../config/firebaseAdmin'; 
 
 
 export interface CreateNotificationData {
@@ -22,24 +22,19 @@ export interface NotificationResponse {
     currentPage: number;
 }
 
-// =============================
-// FUNCIONES PRINCIPALES
-// =============================
 
-/**
- * Crear una nueva notificación
- */
+// Crear una nova notificació
 export const createNotification = async (notificationData: CreateNotificationData): Promise<INotification> => {
     try {
         console.log(` Creando notificación para usuario ${notificationData.userId}`);
         
-        // Verificar que el usuario existe
+        // Verificar que l'usuari existeix
         const userExists = await UserModel.findById(notificationData.userId);
         if (!userExists) {
             throw new Error('Usuario no encontrado');
         }
 
-        // Crear la notificación
+        // Crear la notificació
         const notification = new NotificationModel({
             userId: new mongoose.Types.ObjectId(notificationData.userId),
             type: notificationData.type,
@@ -60,38 +55,13 @@ export const createNotification = async (notificationData: CreateNotificationDat
     }
 };
 
-/**
- * Crear y enviar notificación en tiempo real
- */
-export const createAndSendNotification = async (
-    notificationData: CreateNotificationData,
-    socketIO?: any
-): Promise<INotification> => {
-    try {
-        // Crear la notificación
-        const notification = await createNotification(notificationData);
-        
-        // Enviar por Socket.IO si está disponible
-        if (socketIO) {
-            await sendNotificationViaSocket(notification, socketIO);
-        }
-        
-        return notification;
-    } catch (error) {
-        console.error(' Error creating and sending notification:', error);
-        throw error;
-    }
-};
-
-/**
- * Enviar notificación por Socket.IO
- */
+// Enviar notificació per Socket.IO
 export const sendNotificationViaSocket = async (
     notification: INotification,
     socketIO: any
 ): Promise<void> => {
     try {
-        console.log(`🔔 Enviando notificación por Socket.IO a usuario ${notification.userId}`);
+        console.log(`Enviando notificación por Socket.IO a usuario ${notification.userId}`);
         
         // Buscar el socket del usuario específico
         const sockets = await socketIO.fetchSockets();
@@ -121,9 +91,7 @@ export const sendNotificationViaSocket = async (
     }
 };
 
-/**
- * Obtener notificaciones de un usuario con paginación
- */
+// Obtenir notificacions d'un usuari amb paginació
 export const getUserNotifications = async (
     userId: string,
     page: number = 1,
@@ -160,7 +128,7 @@ export const getUserNotifications = async (
         
         const totalPages = Math.ceil(totalNotifications / limit);
         
-        console.log(`📋 Obtenidas ${notifications.length} notificaciones para usuario ${userId}`);
+        console.log(`Obtenidas ${notifications.length} notificaciones para usuario ${userId}`);
         
         return {
             notifications: notifications as INotification[],
@@ -175,9 +143,7 @@ export const getUserNotifications = async (
     }
 };
 
-/**
- * Marcar notificación como leída
- */
+// Marcar notificació com llegida
 export const markNotificationAsRead = async (
     notificationId: string,
     userId: string
@@ -206,9 +172,7 @@ export const markNotificationAsRead = async (
     }
 };
 
-/**
- * Marcar todas las notificaciones como leídas
- */
+// Marcar totes les notificacions com llegides
 export const markAllNotificationsAsRead = async (userId: string): Promise<number> => {
     try {
         const result = await NotificationModel.updateMany(
@@ -230,9 +194,7 @@ export const markAllNotificationsAsRead = async (userId: string): Promise<number
     }
 };
 
-/**
- * Eliminar notificación
- */
+// Eliminar notificació
 export const deleteNotification = async (
     notificationId: string,
     userId: string
@@ -244,7 +206,7 @@ export const deleteNotification = async (
         });
         
         if (result) {
-            console.log(`🗑️ Notificación ${notificationId} eliminada`);
+            console.log(`Notificación ${notificationId} eliminada`);
             return true;
         }
         
@@ -255,9 +217,7 @@ export const deleteNotification = async (
     }
 };
 
-/**
- * Obtener conteo de notificaciones no leídas
- */
+// Obtenir contador de notificacions no llegides
 export const getUnreadNotificationsCount = async (userId: string): Promise<number> => {
     try {
         const count = await NotificationModel.countDocuments({
@@ -272,12 +232,232 @@ export const getUnreadNotificationsCount = async (userId: string): Promise<numbe
     }
 };
 
+// Crear notificació d'assoliment desbloquejat
+export const createAchievementNotification = async (
+    userId: string,
+    achievementTitle: string,
+    achievementDescription: string,
+    achievementId: string,
+    socketIO?: any
+): Promise<INotification> => {
+    try {
+        const notificationData: CreateNotificationData = {
+            userId,
+            type: 'achievement_unlocked',
+            title: '¡Logro desbloqueado!',
+            message: `Has desbloqueado: ${achievementTitle}`,
+            data: {
+                achievementId,
+                achievementTitle,
+                achievementDescription,
+                type: 'achievement',
+                actionUrl: `/achievements/${achievementId}`
+            },
+            priority: 'high'
+        };
+        
+        return await createAndSendNotificationWithFCM(notificationData, socketIO);
+    } catch (error) {
+        console.error(' Error creating achievement notification:', error);
+        throw error;
+    }
+};
 
+// Netejar notificacions antigues
+export const cleanupOldNotifications = async (daysOld: number = 30): Promise<number> => {
+    try {
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - daysOld);
+        
+        const result = await NotificationModel.deleteMany({
+            createdAt: { $lt: cutoffDate },
+            read: true
+        });
+        
+        console.log(`${result.deletedCount} notificaciones antiguas eliminadas`);
+        return result.deletedCount;
+    } catch (error) {
+        console.error(' Error cleaning up old notifications:', error);
+        throw error;
+    }
+};
 
-/**
- * Crear notificación de nuevo seguidor
- */
-export const createFollowerNotification = async (
+// Enviar notificació push via Firebase FCM
+export const sendPushNotification = async (
+    userIds: string[],
+    title: string,
+    message: string,
+    data: any = {},
+    type: string
+): Promise<void> => {
+    try {
+        console.log(`Enviando notificación FCM a ${userIds.length} usuarios`);
+
+        // Obtenir usuaris amb FCM tokens
+        const users = await UserModel.find({
+            _id: { $in: userIds },
+            fcmToken: { $exists: true, $ne: null }
+        }).select('_id fcmToken notificationSettings username');
+
+        if (users.length === 0) {
+            console.log('No hay usuarios con FCM tokens en la BD');
+            return;
+        }
+
+        console.log(`Encontrados ${users.length} usuarios con FCM tokens en BD`);
+
+        // Filtrar segons configuració de notificacions
+        const usersToNotify = users.filter(user => {
+            if (!user.notificationSettings) return true;
+            
+            switch (type) {
+                case 'new_follower':
+                case 'friend_request':
+                    return user.notificationSettings.friendRequests !== false;
+                case 'activity_update':
+                    return user.notificationSettings.activityUpdates !== false;
+                case 'achievement_unlocked':
+                    return user.notificationSettings.achievements !== false;
+                case 'challenge_completed':
+                    return user.notificationSettings.challenges !== false;
+                case 'chat_message':
+                    return user.notificationSettings.chatMessages !== false;
+                default:
+                    return true;
+            }
+        });
+
+        if (usersToNotify.length === 0) {
+            console.log('No hay usuarios con notificaciones habilitadas para este tipo');
+            return;
+        }
+
+        console.log(`${usersToNotify.length} usuarios tienen notificaciones habilitadas`);
+
+        // FILTRAR TOKENS VÀLIDS CORRECTAMENT
+        const tokens = usersToNotify
+            .map(user => user.fcmToken)
+            .filter((token): token is string => {
+                return token !== null && token !== undefined && token.length > 0;
+            });
+
+        if (tokens.length === 0) {
+            console.log('No hay tokens FCM válidos después del filtrado');
+            return;
+        }
+
+        console.log(`Enviando a ${tokens.length} tokens FCM válidos`);
+
+        // Enviar via FCM
+        const fcmMessage = {
+            tokens: tokens,
+            notification: {
+                title: title,
+                body: message,
+            },
+            data: {
+                type: type,
+                ...data,
+                clickAction: 'FLUTTER_NOTIFICATION_CLICK',
+                timestamp: new Date().toISOString()
+            },
+            webpush: {
+                fcmOptions: {
+                    link: 'http://localhost:60066/#/notifications'
+                }
+            }
+        };
+
+        const response = await admin.messaging().sendEachForMulticast(fcmMessage);
+        console.log(`FCM: ${response.successCount} enviadas, ${response.failureCount} fallidas`);
+
+        // Netejar tokens invàlids
+        if (response.failureCount > 0) {
+            const failedTokens: string[] = [];
+            response.responses.forEach((resp, idx) => {
+                if (!resp.success) {
+                    failedTokens.push(tokens[idx]);
+                    console.error('Token fallido:', tokens[idx], resp.error?.code);
+                }
+            });
+            
+            if (failedTokens.length > 0) {
+                await cleanInvalidFcmTokens(failedTokens);
+            }
+        }
+
+        // Informació de debugging
+        console.log(`Resumen FCM:`, {
+            usuariosObjetivo: userIds.length,
+            usuariosConToken: users.length,
+            usuariosConNotifHabilitadas: usersToNotify.length,
+            tokensValidos: tokens.length,
+            enviadas: response.successCount,
+            fallidas: response.failureCount
+        });
+
+    } catch (error) {
+        console.error('Error enviando notificación FCM:', error);
+        throw error; // Re-lanzar para que el calling code pueda manejar el error
+    }
+};
+
+// Netejar tokens FCM invàlids
+export const cleanInvalidFcmTokens = async (invalidTokens: string[]): Promise<void> => {
+    try {
+        await UserModel.updateMany(
+            { 
+                $or: [
+                    { fcmToken: { $in: invalidTokens } },
+                    { fcmTokens: { $in: invalidTokens } }
+                ]
+            },
+            { 
+                $unset: { fcmToken: 1 },
+                $pullAll: { fcmTokens: invalidTokens }
+            }
+        );
+
+        console.log(`Limpiados ${invalidTokens.length} tokens FCM inválidos`);
+    } catch (error) {
+        console.error('Error limpiando tokens inválidos:', error);
+    }
+};
+
+export const createAndSendNotificationWithFCM = async (
+    notificationData: CreateNotificationData,
+    socketIO?: any,
+    sendPush: boolean = true
+): Promise<INotification> => {
+    try {
+        // 1. Crear la notificación en BD (tu función existente)
+        const notification = await createNotification(notificationData);
+        
+        // 2. Enviar por Socket.IO si está disponible (tu función existente)
+        if (socketIO) {
+            await sendNotificationViaSocket(notification, socketIO);
+        }
+        
+        // 3. Enviar por FCM si está habilitado
+        if (sendPush) {
+            await sendPushNotification(
+                [notificationData.userId],
+                notificationData.title,
+                notificationData.message,
+                notificationData.data || {},
+                notificationData.type
+            );
+        }
+        
+        return notification;
+    } catch (error) {
+        console.error('Error creating and sending notification with FCM:', error);
+        throw error;
+    }
+};
+
+// Crear una notificació de nou seguidor amb FCM
+export const createFollowerNotificationWithFCM = async (
     followedUserId: string,
     followerUserId: string,
     followerUsername: string,
@@ -298,17 +478,74 @@ export const createFollowerNotification = async (
             priority: 'normal'
         };
         
-        return await createAndSendNotification(notificationData, socketIO);
+        // Usar la nueva función que incluye FCM
+        return await createAndSendNotificationWithFCM(notificationData, socketIO, true);
     } catch (error) {
-        console.error(' Error creating follower notification:', error);
+        console.error('Error creating follower notification with FCM:', error);
         throw error;
     }
 };
 
-/**
- * Crear notificación de logro desbloqueado
- */
-export const createAchievementNotification = async (
+// Crear una notificació de nova activitat per als seguidors
+export const createActivityNotificationForFollowers = async (
+    userId: string,
+    activityData: any,
+    socketIO?: any
+): Promise<void> => {
+    try {
+        // Obtener el usuario y sus seguidores
+        const user = await UserModel.findById(userId)
+            .populate('followers', '_id username')
+            .select('username followers');
+
+        if (!user || !user.followers || user.followers.length === 0) {
+            console.log('Usuario no tiene seguidores para notificar actividad');
+            return;
+        }
+
+        const activityTypes: { [key: string]: string } = {
+            'running': '🏃‍♂️ corriendo',
+            'cycling': '🚴‍♀️ en bicicleta',
+            'walking': '🚶‍♀️ caminando',
+            'swimming': '🏊‍♀️ nadando',
+            'hiking': '🥾 senderismo'
+        };
+
+        const activityEmoji = activityTypes[activityData.type] || '🏃‍♂️ ejercicio';
+        const distance = activityData.distance ? `${activityData.distance} km` : '';
+
+        // Crear notificaciones para cada seguidor
+        const followerIds = user.followers.map((follower: any) => follower._id.toString());
+        
+        for (const followerId of followerIds) {
+            const notificationData: CreateNotificationData = {
+                userId: followerId,
+                type: 'activity_update',
+                title: 'Nueva actividad',
+                message: `${user.username} ha estado ${activityEmoji} ${distance}`,
+                data: {
+                    senderId: userId,
+                    senderUsername: user.username,
+                    activityId: activityData._id?.toString() || '',
+                    activityType: activityData.type,
+                    distance: activityData.distance?.toString() || '',
+                    duration: activityData.duration?.toString() || ''
+                },
+                priority: 'normal'
+            };
+            
+            await createAndSendNotificationWithFCM(notificationData, socketIO, true);
+        }
+
+        console.log(`Notificaciones de actividad enviadas a ${followerIds.length} seguidores`);
+    } catch (error) {
+        console.error('Error enviando notificaciones de actividad:', error);
+    }
+};
+
+
+// Crear una notificació d'assoliment desbloquejat amb FCM
+export const createAchievementUnlockedNotificationWithFCM = async (
     userId: string,
     achievementTitle: string,
     achievementDescription: string,
@@ -319,8 +556,8 @@ export const createAchievementNotification = async (
         const notificationData: CreateNotificationData = {
             userId,
             type: 'achievement_unlocked',
-            title: '🏆 ¡Logro desbloqueado!',
-            message: `Has desbloqueado: ${achievementTitle}`,
+            title: '¡Logro desbloqueado!',
+            message: `Has desbloqueado el logro: ${achievementTitle}`,
             data: {
                 achievementId,
                 achievementTitle,
@@ -330,62 +567,14 @@ export const createAchievementNotification = async (
             },
             priority: 'high'
         };
-        
-        return await createAndSendNotification(notificationData, socketIO);
+
+        // Usar la nueva función que incluye FCM
+        return await createAndSendNotificationWithFCM(notificationData, socketIO, true);
     } catch (error) {
-        console.error(' Error creating achievement notification:', error);
+        console.error('Error creating achievement unlocked notification with FCM:', error);
         throw error;
     }
 };
 
-/**
- * Crear notificación de actividad
- */
-export const createActivityNotification = async (
-    userId: string,
-    activityName: string,
-    activityId: string,
-    socketIO?: any
-): Promise<INotification> => {
-    try {
-        const notificationData: CreateNotificationData = {
-            userId,
-            type: 'activity_update',
-            title: 'Actividad completada',
-            message: `Has completado: ${activityName}`,
-            data: {
-                activityId,
-                activityName,
-                type: 'activity',
-                actionUrl: `/activities/${activityId}`
-            },
-            priority: 'normal'
-        };
-        
-        return await createAndSendNotification(notificationData, socketIO);
-    } catch (error) {
-        console.error(' Error creating activity notification:', error);
-        throw error;
-    }
-};
 
-/**
- * Limpiar notificaciones antiguas (tarea de mantenimiento)
- */
-export const cleanupOldNotifications = async (daysOld: number = 30): Promise<number> => {
-    try {
-        const cutoffDate = new Date();
-        cutoffDate.setDate(cutoffDate.getDate() - daysOld);
-        
-        const result = await NotificationModel.deleteMany({
-            createdAt: { $lt: cutoffDate },
-            read: true
-        });
-        
-        console.log(`🧹 ${result.deletedCount} notificaciones antiguas eliminadas`);
-        return result.deletedCount;
-    } catch (error) {
-        console.error(' Error cleaning up old notifications:', error);
-        throw error;
-    }
-};
+// Crear una notificació de sol·licitut d'amistat

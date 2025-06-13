@@ -9,3 +9,7 @@ if (!admin.apps.length) {
 }
 
 export default admin;
+
+export function messaging() {
+  throw new Error('Function not implemented.');
+}

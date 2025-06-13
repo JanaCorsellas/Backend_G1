@@ -26,7 +26,7 @@ export const registerCtrl = async ({body}: Request, res: Response) => {
     }
 };
 
-// Modificado: Enviar objeto usuario completo en la respuesta
+// Enviar objeto usuario completo en la respuesta
 export const loginCtrl = async ({ body }: Request, res: Response) => {
     try {
         const { username, email, password } = body;
@@ -218,7 +218,7 @@ export const googleCallbackCtrl = async (req: Request, res: Response) => {
         }
 
         // BUSCAR USUARIO
-        console.log('🔍 Buscando usuario en base de datos...');
+        console.log('Buscando usuario en base de datos...');
         let user = await UserModel.findOne({ email });
 
         if (!user) {
@@ -258,7 +258,7 @@ export const googleCallbackCtrl = async (req: Request, res: Response) => {
             if (!user.googleId) {
                 updateData.googleId = googleId;
                 needsUpdate = true;
-                console.log('📝 Agregando googleId al usuario existente');
+                console.log('Agregando googleId al usuario existente');
             }
 
             if (!user.password) {
@@ -266,13 +266,13 @@ export const googleCallbackCtrl = async (req: Request, res: Response) => {
                 const randomPassword = Math.random().toString(36).slice(-8);
                 updateData.password = await encrypt(randomPassword);
                 needsUpdate = true;
-                console.log('🔐 Generando contraseña para usuario sin contraseña');
+                console.log('Generando contraseña para usuario sin contraseña');
             }
 
             if (picture && (!user.profilePicture || user.profilePicture !== picture)) {
                 updateData.profilePicture = picture;
                 needsUpdate = true;
-                console.log('📸 Actualizando foto de perfil');
+                console.log('Actualizando foto de perfil');
             }
 
             // Actualizar usuario si es necesario (sin validar todo el documento)
@@ -302,7 +302,7 @@ export const googleCallbackCtrl = async (req: Request, res: Response) => {
             refreshToken: refreshToken.substring(0, 20) + '...'
         });
 
-        // ⭐ GUARDAR REFRESH TOKEN SIN VALIDAR TODO EL DOCUMENTO
+        // GUARDAR REFRESH TOKEN SIN VALIDAR TODO EL DOCUMENTO
         console.log(' Guardando refresh token...');
         try {
             await UserModel.updateOne(
@@ -318,13 +318,13 @@ export const googleCallbackCtrl = async (req: Request, res: Response) => {
 
         // REDIRECCIONAR CON TOKENS
         const redirectUrl = `http://localhost:5173/oauth-success?token=${token}&refreshToken=${refreshToken}`;
-        console.log('🔄 Redirigiendo a:', redirectUrl.substring(0, 80) + '...');
+        console.log('Redirigiendo a:', redirectUrl.substring(0, 80) + '...');
         
         res.redirect(redirectUrl);
 
     } catch (err: any) {
         console.error(' Error en Google OAuth:', err);
-        console.error('📄 Error completo:', {
+        console.error('Error completo:', {
             message: err.message,
             stack: err.stack,
             response: err.response?.data

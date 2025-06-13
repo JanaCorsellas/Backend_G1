@@ -23,7 +23,6 @@ export const achievementSchema = new Schema<IAchievement>({
         required: true,
         default: []
     }],
-    // Nuevos campos para hacer el sistema más automático
     type: {
         type: String,
         enum: ['distance_total', 'distance_single', 'time_total', 'time_single', 'time_monthly', 'time_yearly', 'activity_count', 'consecutive_days', 'speed_average', 'elevation_gain'],
