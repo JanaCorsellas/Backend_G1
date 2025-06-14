@@ -6,7 +6,7 @@ dotenv.config();
 const connectDatabase = async (): Promise<void> => {
     try{
         mongoose.set('strictQuery', true);
-        await mongoose.connect(process.env.MONGO_URI || 'mongodb://mongodb:27017/ProyectoEA_bd');
+        await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/ProyectoEA_bd');
         console.log('Connexió exitosa amb MongoDB');
   
         // Manejadores de eventos para la conexión a MongoDB

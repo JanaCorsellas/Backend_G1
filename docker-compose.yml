@@ -33,7 +33,7 @@ services:
     depends_on:
       - backend
     environment:
-      - PUBLIC_API_URL=https://backend:8080
+      - PUBLIC_API_URL=http://backend:8080
     networks:
       - "frontend_network"
   webapp:
@@ -44,7 +44,7 @@ services:
     depends_on:
       - backend
     environment:
-      - PUBLIC_API_URL=https://backend:8080
+      - PUBLIC_API_URL=http://backend:8080
     networks:
       - "frontend_network"
 

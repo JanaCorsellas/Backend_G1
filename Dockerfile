@@ -18,7 +18,7 @@ COPY --from=build /home/app/dist ./dist
 COPY --from=build /home/app/package*.json ./
 COPY --from=build /home/app/src ./src
 
-COPY .env .env
+COPY /src/.env .env
 
 RUN npm ci
 
