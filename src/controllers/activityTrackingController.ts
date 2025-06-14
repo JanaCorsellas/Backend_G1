@@ -201,7 +201,7 @@ export const finishTrackingController = async (req: Request, res: Response): Pro
           name: name || `${finishedTracking.activityType.charAt(0).toUpperCase() + finishedTracking.activityType.slice(1)} ${finishedTracking.startTime.toLocaleDateString()}`,
           startTime: finishedTracking.startTime,
           endTime: finishedTracking.endTime,
-          duration: finishedTracking.currentDuration / 60, // Convertir a minutos para el modelo de actividad
+          duration: finishedTracking.currentDuration,
           distance: finishedTracking.currentDistance,
           elevationGain: finishedTracking.elevationGain,
           averageSpeed: finishedTracking.averageSpeed,
@@ -219,7 +219,7 @@ export const finishTrackingController = async (req: Request, res: Response): Pro
             $push: { activities: savedActivity._id },
             $inc: { 
               totalDistance: finishedTracking.currentDistance,
-              totalTime: finishedTracking.currentDuration / 60 // Convertir a minutos
+              totalTime: finishedTracking.currentDuration
             }
           }
         );
