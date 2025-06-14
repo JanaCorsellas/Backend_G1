@@ -4,6 +4,8 @@ import ActivityModel from '../models/activity';
 import UserModel from '../models/user';
 import mongoose from 'mongoose';
 import ReferencePointModel from '../models/referencePoint';
+import { createActivityNotificationForFollowers } from '../services/notificationService';
+import { getIO } from '../config/socketConfig';
 
 // Iniciar una nueva actividad de tracking
 export const startTrackingController = async (req: Request, res: Response): Promise<void> => {
@@ -221,6 +223,39 @@ export const finishTrackingController = async (req: Request, res: Response): Pro
             }
           }
         );
+
+        // Enviar notificacions als seguidors
+
+        try {
+          //const { getIO } = await import('../config/socketConfig.js');  
+          const socketIO = getIO();
+            
+            const activityNotificationData = {
+                _id: savedActivity._id,
+                id: savedActivity._id,
+                name: savedActivity.name,
+                type: savedActivity.type,
+                distance: savedActivity.distance,
+                duration: savedActivity.duration,
+                startTime: savedActivity.startTime,
+                endTime: savedActivity.endTime
+            };
+
+            console.log(`Enviando notificaciones de actividad completada...`);
+            
+            // Enviar notificaciones de forma asíncrona
+            setImmediate(async () => {
+                await createActivityNotificationForFollowers(
+                    finishedTracking.userId.toString(), 
+                    activityNotificationData, 
+                    socketIO
+                );
+            });
+            
+        } catch (notificationError) {
+            console.error('Error enviando notificaciones de actividad:', notificationError);
+            // No fallar la operación principal
+        }
   
         res.status(200).json({
           message: 'Tracking finalizado y actividad creada con éxito',

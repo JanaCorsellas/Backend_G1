@@ -1,3 +1,6 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
 import http from 'http';
 import userRoutes from './routes/userRoutes';
@@ -8,7 +11,6 @@ import achievementRoutes from './routes/achievementRoutes';
 import challengeRoutes from './routes/challengeRoutes';
 import songRoutes from './routes/songRoutes';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import setupSwagger from './config/swaggerConfig';
 import activityHistoryRoutes from './routes/activityHistoryRoutes';
 import chatRoutes from './routes/chatRoutes'; 
@@ -18,8 +20,6 @@ import activityTrackingRoutes from './routes/activityTrackingRoutes';
 import { verifyCloudinaryConfig } from './config/cloudinary'; 
 import notificationRoutes from './routes/notificationRoutes';
 
-// Load environment variables
-dotenv.config();
 
 // Initialize Express
 const app = express();
