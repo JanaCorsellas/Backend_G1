@@ -55,7 +55,7 @@ const swaggerOptions = {
 
     servers: [
       {
-        url: `http://localhost:3000`,
+        url: `https://ea1-api.upc.edu`,
         description: 'Servidor local per desenvolupament',
       },
     ],
