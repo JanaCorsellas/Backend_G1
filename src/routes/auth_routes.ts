@@ -4,9 +4,8 @@ import {
     loginCtrl, 
     refreshTokenCtrl, 
     logoutCtrl,
-    googleAuthCtrl, 
-    googleAuthCallback ,
-    googleAuthTokenCtrl 
+    googleAuthCtrl,
+    googleCallbackCtrl 
 } from '../controllers/auth_controller';
 import { checkJwt } from "../middleware/session";
 import { ParamsDictionary } from 'express-serve-static-core';
@@ -116,14 +115,6 @@ router.post("/login", async (req: Request, res: Response) => {
     } catch (error) {
         res.status(500).json({ message: "Internal server error" });
     }
-});
-
-router.post('/google/token', async (req, res) => {
-  try {
-    await googleAuthTokenCtrl(req, res);
-  } catch (err) {
-    res.status(500).json({ message: 'Error interno del servidor' });
-  }
 });
 
 /**
@@ -236,7 +227,7 @@ router.get('/google', async (req: Request, res: Response) => {
  */
 router.get('/google/callback', async (req: Request, res: Response) => {
     try {
-        await googleAuthCallback(req, res);
+        await googleCallbackCtrl(req, res);
     } catch (error) {
         res.status(500).json({ message: "Internal server error" });
     }

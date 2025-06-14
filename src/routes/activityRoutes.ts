@@ -139,6 +139,59 @@ const router = express.Router();
  *         description: Activity created successfully
  */
 router.post('/', activityController.createActivityController);
+/**
+ * @openapi
+ * /api/activities/following/{userId}:
+ *   get:
+ *     summary: Get activities from users that the specified user follows (activity feed)
+ *     tags: [Activities]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of activities per page
+ *     responses:
+ *       200:
+ *         description: Activities from followed users
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 activities:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Activity'
+ *                 totalActivities:
+ *                   type: integer
+ *                 totalPages:
+ *                   type: integer
+ *                 currentPage:
+ *                   type: integer
+ *                 hasMore:
+ *                   type: boolean
+ *                 followingCount:
+ *                   type: integer
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
+router.get('/following/:userId', activityController.getFollowingActivitiesController);
 
 /**
  * @openapi

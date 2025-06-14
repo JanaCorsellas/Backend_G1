@@ -1,6 +1,8 @@
 import express from 'express';
 import { Router } from 'express';
 import * as chatController from '../controllers/chatController';
+import { uploadGroupPictureCloudinary } from '../middleware/cloudinaryGroupUpload';
+
 
 const router: Router = express.Router();
 
@@ -24,6 +26,9 @@ const router: Router = express.Router();
  *           type: string
  *         isGroup:
  *           type: boolean
+ *         groupPictureUrl:
+ *           type: string
+ *           description: URL of the group picture
  */
 
 /**
@@ -198,6 +203,86 @@ router.post('/messages', async (req, res) => {
 router.post('/messages/read', async (req, res) => {
   await chatController.markMessagesAsReadController(req, res);
 });
+
+/**
+ * @openapi
+ * /api/chat/rooms/{id}/group-picture:
+ *   patch:
+ *     summary: Update group picture of a chat room
+ *     tags: [Chat]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - groupPicture
+ *             properties:
+ *               groupPicture:
+ *                 type: string
+ *                 format: binary
+ *                 description: Group picture image file
+ *     responses:
+ *       200:
+ *         description: Group picture updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 _id:
+ *                   type: string
+ *                 name:
+ *                   type: string
+ *                 groupPictureUrl:
+ *                   type: string
+ *       400:
+ *         description: Invalid input
+ *       404:
+ *         description: Room not found
+ *       500:
+ *         description: Server error
+ */
+router.patch(
+  '/rooms/:id/group-picture',
+  uploadGroupPictureCloudinary.single('groupPicture'),
+  async (req, res): Promise<void> => {
+    try {
+      console.log('Group picture upload request received');
+      console.log(`Room ID: ${req.params.id}`);
+      console.log(`File received: ${req.file ? 'Yes' : 'No'}`);
+      
+      if (req.file) {
+        console.log(`File details:`, {
+          filename: req.file.filename,
+          originalname: req.file.originalname,
+          path: req.file.path,
+          size: req.file.size,
+          mimetype: req.file.mimetype
+        });
+        
+        // Set the uploaded file URL in the body for the controller
+        req.body.groupPictureUrl = req.file.path;
+      } else {
+        console.log('No file received in upload request');
+        res.status(400).json({ message: 'No se recibió ningún archivo' });
+        return; // Explicit return without value
+      }
+      
+      await chatController.updateGroupPictureController(req, res);
+    } catch (error) {
+      console.error('Error in group picture upload route:', error);
+      res.status(500).json({ message: 'Error interno del servidor' });
+    }
+  }
+);
 
 /**
  * @openapi

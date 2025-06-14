@@ -6,9 +6,7 @@ export const createSong = async (song:ISong) => {
     return await newSong.save();
 };
 
-/**
- * Obtenir totes les cançons
- */
+// Obtenir totes les cançons
 export const getSongs = async (page: number, limit: number): Promise<{
   songs: ISong[];
   totalSongs: number;

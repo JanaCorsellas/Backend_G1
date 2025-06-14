@@ -2,6 +2,8 @@ import mongoose from 'mongoose';
 import ChatRoomModel, { IChatRoom } from '../models/chatRoom';
 import MessageModel, { IMessage } from '../models/message';
 import { getIO } from '../config/socketConfig';
+import admin from '../config/firebaseAdmin';
+import UserModel from '../models/user';
 
 // Crear una sala de chat
 export const createChatRoom = async (roomData: {
@@ -9,6 +11,7 @@ export const createChatRoom = async (roomData: {
   description?: string;
   participants: string[];
   isGroup?: boolean;
+  groupPictureUrl?: string;
 }): Promise<IChatRoom> => {
   // Convertir los IDs de string a ObjectId
   const participantIds = roomData.participants.map(id => new mongoose.Types.ObjectId(id));
@@ -42,6 +45,7 @@ export const createChatRoom = async (roomData: {
     description: roomData.description,
     participants: participantIds,
     isGroup: roomData.isGroup ?? (participantIds.length > 2),
+    groupPictureUrl: roomData.groupPictureUrl,
     createdAt: new Date()
   });
   
@@ -119,6 +123,33 @@ export const saveMessage = async (messageData: {
   if (!populatedMessage) {
     throw new Error('No se encontró el mensaje después de guardarlo');
   }
+  const chatRoom = await ChatRoomModel.findById(messageData.roomId);
+  if (chatRoom) {
+    const recipients = chatRoom.participants.filter(
+      (id: any) => id.toString() !== messageData.senderId
+    );
+    const users = await UserModel.find({ _id: { $in: recipients } });
+    const tokens = users
+      .map((u: any) => u.fcmToken)
+      .filter((token: string | undefined) => !!token);
+
+    if (tokens.length > 0) {
+      try {
+        await admin.messaging().sendEachForMulticast({
+          tokens,
+          notification: {
+            title: 'Nuevo mensaje',
+            body: messageData.content,
+          },
+          data: {
+            roomId: messageData.roomId,
+          },
+        });
+      } catch (err) {
+        console.error('Error sending FCM notification:', err);
+      }
+    }
+  }
   
   return populatedMessage;
 };
@@ -153,6 +184,33 @@ export const markMessagesAsRead = async (roomId: string, userId: string): Promis
   );
   
   return result.modifiedCount;
+};
+
+export const updateGroupPicture = async (roomId: string, groupPictureUrl: string): Promise<IChatRoom | null> => {
+  try {
+    console.log('Service: Updating group picture');
+    console.log(`Room ID: ${roomId}`);
+    console.log(`Picture URL: ${groupPictureUrl}`);
+
+    const updatedRoom = await ChatRoomModel.findByIdAndUpdate(
+      roomId,
+      { groupPictureUrl },
+      { new: true }
+    ).populate('participants', 'username profilePicture');
+
+    if (updatedRoom) {
+      console.log('Service: Group picture updated successfully');
+      console.log(`Room: ${updatedRoom.name}`);
+      console.log(`New picture URL: ${updatedRoom.groupPictureUrl}`);
+    } else {
+      console.log('Service: Room not found');
+    }
+
+    return updatedRoom;
+  } catch (error) {
+    console.error('Service: Error updating group picture:', error);
+    throw new Error(`Failed to update group picture: ${error}`);
+  }
 };
 
 // Eliminar una sala de chat

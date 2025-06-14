@@ -4,6 +4,8 @@ import mongoose from "mongoose";
 import * as activityHistoryService from './activityHistoryService';
 import { IActivityHistory } from "../models/activityHistory";
 import * as achievementService from './achievementService';
+import { createActivityNotificationForFollowers } from './notificationService';
+import { getIO } from '../config/socketConfig';
 
 // Función auxiliar para normalizar las fechas (eliminar la influencia de zona horaria)
 const normalizeDate = (date: Date | string | undefined): string => {
@@ -31,6 +33,39 @@ export const createActivity = async (userId: string, activityData: Omit<IActivit
         newValues: activity.toObject()
     });
 
+    // Enviar notificacions als seguidors
+    try {
+        //const { getIO } = await import('../config/socketConfig.js');
+        const socketIO = getIO(); // Obtener instancia de Socket.IO
+        
+        // Preparar datos de la actividad para las notificaciones
+        const activityNotificationData = {
+            _id: activity._id,
+            id: activity._id,
+            name: activity.name,
+            type: activity.type,
+            distance: activity.distance,
+            duration: activity.duration,
+            startTime: activity.startTime,
+            endTime: activity.endTime
+        };
+
+        console.log(`Enviando notificaciones de nueva actividad...`);
+        
+        // Llamar a la función de notificaciones de forma asíncrona para no bloquear
+        setImmediate(async () => {
+            await createActivityNotificationForFollowers(
+                userId, 
+                activityNotificationData, 
+                socketIO
+            );
+        });
+        
+    } catch (notificationError) {
+        console.error('Error enviando notificaciones de actividad (no crítico):', notificationError);
+        // No fallar la creación de actividad si fallan las notificaciones
+    }
+
     // Verificar y desbloquear nuevos logros
     try {
         const newAchievements = await achievementService.checkAndUnlockAchievements(userId);
@@ -53,39 +88,12 @@ export const createActivity = async (userId: string, activityData: Omit<IActivit
 export const getActivityById = async (activityId: string): Promise<IActivity | null> => {
     return await ActivityModel.findById(activityId).populate('route').populate('musicPlaylist').populate('author');
 };
-/*
+
 // Obtener todas las actividades de un usuario
 export const getActivitiesByUserId = async (userId: string): Promise<IActivity[]> => {
     return await ActivityModel.find({ author: userId }).populate('route').populate('musicPlaylist');
-};*/
-export const getActivitiesByUserIdPaginated = async (
-  userId: string,
-  page: number = 1,
-  limit: number = 4
-): Promise<{
-  activities: IActivity[];
-  totalActivities: number;
-  totalPages: number;
-  currentPage: number;
-}> => {
-  const skip = (page - 1) * limit;
-
-  const [activities, totalActivities] = await Promise.all([
-    ActivityModel.find({ author: userId })
-      .skip(skip)
-      .limit(limit)
-      .populate('route')
-      .populate('musicPlaylist'),
-    ActivityModel.countDocuments({ author: userId })
-  ]);
-
-  return {
-    activities,
-    totalActivities,
-    totalPages: Math.ceil(totalActivities / limit),
-    currentPage: page
-  };
 };
+
 // Obtener todas las actividades
 export const getAllActivities = async (): Promise<IActivity[]> => {
     return await ActivityModel.find().populate('route').populate('musicPlaylist').populate('author');

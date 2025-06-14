@@ -4,6 +4,8 @@ import ActivityModel from '../models/activity';
 import UserModel from '../models/user';
 import mongoose from 'mongoose';
 import ReferencePointModel from '../models/referencePoint';
+import { createActivityNotificationForFollowers } from '../services/notificationService';
+import { getIO } from '../config/socketConfig';
 
 // Iniciar una nueva actividad de tracking
 export const startTrackingController = async (req: Request, res: Response): Promise<void> => {
@@ -199,7 +201,7 @@ export const finishTrackingController = async (req: Request, res: Response): Pro
           name: name || `${finishedTracking.activityType.charAt(0).toUpperCase() + finishedTracking.activityType.slice(1)} ${finishedTracking.startTime.toLocaleDateString()}`,
           startTime: finishedTracking.startTime,
           endTime: finishedTracking.endTime,
-          duration: finishedTracking.currentDuration / 60, // Convertir a minutos para el modelo de actividad
+          duration: finishedTracking.currentDuration,
           distance: finishedTracking.currentDistance,
           elevationGain: finishedTracking.elevationGain,
           averageSpeed: finishedTracking.averageSpeed,
@@ -217,10 +219,43 @@ export const finishTrackingController = async (req: Request, res: Response): Pro
             $push: { activities: savedActivity._id },
             $inc: { 
               totalDistance: finishedTracking.currentDistance,
-              totalTime: finishedTracking.currentDuration / 60 // Convertir a minutos
+              totalTime: finishedTracking.currentDuration
             }
           }
         );
+
+        // Enviar notificacions als seguidors
+
+        try {
+          //const { getIO } = await import('../config/socketConfig.js');  
+          const socketIO = getIO();
+            
+            const activityNotificationData = {
+                _id: savedActivity._id,
+                id: savedActivity._id,
+                name: savedActivity.name,
+                type: savedActivity.type,
+                distance: savedActivity.distance,
+                duration: savedActivity.duration,
+                startTime: savedActivity.startTime,
+                endTime: savedActivity.endTime
+            };
+
+            console.log(`Enviando notificaciones de actividad completada...`);
+            
+            // Enviar notificaciones de forma asíncrona
+            setImmediate(async () => {
+                await createActivityNotificationForFollowers(
+                    finishedTracking.userId.toString(), 
+                    activityNotificationData, 
+                    socketIO
+                );
+            });
+            
+        } catch (notificationError) {
+            console.error('Error enviando notificaciones de actividad:', notificationError);
+            // No fallar la operación principal
+        }
   
         res.status(200).json({
           message: 'Tracking finalizado y actividad creada con éxito',

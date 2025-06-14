@@ -5,7 +5,7 @@ import { getIO } from '../config/socketConfig';
 // Crear una sala de chat
 export const createChatRoomController = async (req: Request, res: Response) => {
   try {
-    const { name, participants, description, isGroup } = req.body;
+    const { name, participants, description, isGroup, groupPictureUrl } = req.body;
     
     // Validar datos requeridos
     if (!name || !participants || !Array.isArray(participants) || participants.length < 2) {
@@ -16,7 +16,8 @@ export const createChatRoomController = async (req: Request, res: Response) => {
       name,
       participants,
       description,
-      isGroup
+      isGroup,
+      groupPictureUrl
     });
     
     res.status(201).json(chatRoom);
@@ -141,6 +142,49 @@ export const markMessagesAsReadController = async (req: Request, res: Response) 
   } catch (error: any) {
     console.error('Error al marcar mensajes como leídos:', error);
     res.status(500).json({ message: error.message });
+  }
+};
+
+export const updateGroupPictureController = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const roomId = req.params.id;
+    const { groupPictureUrl } = req.body;
+
+    console.log('Updating group picture for room:', roomId);
+    console.log('New picture URL:', groupPictureUrl);
+
+    if (!groupPictureUrl) {
+      console.log('No groupPictureUrl provided');
+      res.status(400).json({ message: 'Se requiere groupPictureUrl' });
+      return;
+    }
+
+    const updatedRoom = await chatService.updateGroupPicture(roomId, groupPictureUrl);
+
+    if (!updatedRoom) {
+      console.log('Room not found:', roomId);
+      res.status(404).json({ message: 'Sala no encontrada' });
+      return;
+    }
+
+    console.log('Group picture updated successfully');
+    console.log('Updated room:', {
+      id: updatedRoom._id,
+      name: updatedRoom.name,
+      groupPictureUrl: updatedRoom.groupPictureUrl
+    });
+
+    res.status(200).json({
+      message: 'Imagen de grupo actualizada exitosamente',
+      room: updatedRoom,
+      groupPictureUrl: updatedRoom.groupPictureUrl
+    });
+  } catch (error: any) {
+    console.error('Error al actualizar la imagen del grupo:', error);
+    res.status(500).json({ 
+      message: 'Error interno del servidor',
+      error: error.message 
+    });
   }
 };
 

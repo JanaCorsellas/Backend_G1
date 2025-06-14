@@ -15,9 +15,7 @@ export const createSongHandler = async (req: Request, res: Response): Promise <a
     }
 };
 
-/**
- * Obtenir totes les cançons
- */
+// Obtenir totes les cançons
 export const getSongsHandler = async (req: Request, res: Response): Promise<void> => {
   try {
     // Obtenir pàgina i límit dels paràmetres de consulta
