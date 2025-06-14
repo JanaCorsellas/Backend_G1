@@ -1,6 +1,6 @@
 import { Request,Response } from "express";
 import * as achievementService from '../services/achievementService';
-import { IAchievement } from "../models/achievement";
+import AchievementModel, { IAchievement } from "../models/achievement";
 
 export const createAchievementHandler = async(req: Request, res: Response)=>{
     try{
@@ -253,5 +253,50 @@ export const deleteAchievementHandler = async(req: Request, res: Response)=>{
         res.status(200).json({message: "Achievement eliminat amb èxit"});
     } catch(error){
         res.status(500).json({message: "Error al eliminar el achievement", error});
+    }
+};
+// SOLUCIÓN DIRECTA: Agregar al achievementController.ts
+
+export const cleanupDuplicatesController = async (req: Request, res: Response) => {
+    try {
+        console.log('Eliminando achievements duplicados...');
+        
+        // Encontrar duplicados por título
+        const duplicates = await AchievementModel.aggregate([
+            {
+                $group: {
+                    _id: "$title",
+                    ids: { $push: "$_id" },
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $match: { count: { $gt: 1 } }
+            }
+        ]);
+
+        let deletedCount = 0;
+        
+        // Para cada grupo de duplicados, mantener solo el primero
+        for (const duplicate of duplicates) {
+            const [keepId, ...removeIds] = duplicate.ids;
+            
+            // Eliminar los duplicados (mantener solo el primero)
+            const result = await AchievementModel.deleteMany({
+                _id: { $in: removeIds }
+            });
+            
+            deletedCount += result.deletedCount || 0;
+            console.log(`Eliminados ${removeIds.length} duplicados de "${duplicate._id}"`);
+        }
+        
+        res.status(200).json({
+            message: `Eliminados ${deletedCount} achievements duplicados`,
+            duplicateGroups: duplicates.length
+        });
+        
+    } catch (error) {
+        console.error('Error eliminando duplicados:', error);
+        res.status(500).json({ message: 'Error eliminando duplicados' });
     }
 };
