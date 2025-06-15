@@ -513,7 +513,24 @@ export const createActivityNotificationForFollowers = async (
 
         const activityEmoji = activityTypes[activityData.type] || '🏃‍♂️ ejercicio';
         const distance = activityData.distance ? `${(activityData.distance / 1000).toFixed(2)} km` : '';
-        const duration = activityData.duration ? ` durante ${Math.round(activityData.duration)} min` : '';
+        
+        const formatDuration = (durationInSeconds: number): string => {
+            if (durationInSeconds < 60) {
+                return ' durante 0 min';  // Activitats curtes es mostren com 0 min
+            } else if (durationInSeconds < 3600) {
+                const minutes = Math.round(durationInSeconds / 60);
+                return ` durante ${minutes} min`;
+            } else {
+                const hours = Math.floor(durationInSeconds / 3600);
+                const remainingMinutes = Math.round((durationInSeconds % 3600) / 60);
+                if (remainingMinutes === 0) {
+                    return ` durante ${hours}h`;
+                } else {
+                    return ` durante ${hours}h ${remainingMinutes}min`;
+                }
+            }
+        };
+        const duration = activityData.duration ? formatDuration(activityData.duration) : '';
 
         // Crear notificaciones para cada seguidor
         const followerIds = user.followers.map((follower: any) => follower._id.toString());
