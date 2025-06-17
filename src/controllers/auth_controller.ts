@@ -317,7 +317,7 @@ export const googleCallbackCtrl = async (req: Request, res: Response) => {
         }
 
         // REDIRECCIONAR CON TOKENS
-        const redirectUrl = `http://localhost:5173/oauth-success?token=${token}&refreshToken=${refreshToken}`;
+        const redirectUrl = `https://ea1.upc.edu/oauth-success?token=${token}&refreshToken=${refreshToken}`;
         console.log('Redirigiendo a:', redirectUrl.substring(0, 80) + '...');
         
         res.redirect(redirectUrl);
