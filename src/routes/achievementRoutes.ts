@@ -200,6 +200,20 @@ router.post('/user/:userId/check', achievementController.checkUserAchievementsCo
 
 /**
  * @openapi
+ * /api/achievements/cleanup-duplicates:
+ *   post:
+ *     summary: Clean up duplicate achievements
+ *     tags: [Achievements]
+ *     responses:
+ *       200:
+ *         description: Duplicados eliminados exitosamente
+ *       500:
+ *         description: Error eliminando duplicados
+ */
+router.post('/cleanup-duplicates', achievementController.cleanupDuplicatesController);
+
+/**
+ * @openapi
  * /api/achievements/initialize/defaults:
  *   post:
  *     summary: Initialize default achievements

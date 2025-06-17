@@ -512,32 +512,61 @@ export const createActivityNotificationForFollowers = async (
         };
 
         const activityEmoji = activityTypes[activityData.type] || '🏃‍♂️ ejercicio';
-        const distance = activityData.distance ? `${activityData.distance} km` : '';
+        const distance = activityData.distance ? `${(activityData.distance / 1000).toFixed(2)} km` : '';
+        
+        const formatDuration = (durationInSeconds: number): string => {
+            if (durationInSeconds < 60) {
+                return ' durante 0 min';  // Activitats curtes es mostren com 0 min
+            } else if (durationInSeconds < 3600) {
+                const minutes = Math.round(durationInSeconds / 60);
+                return ` durante ${minutes} min`;
+            } else {
+                const hours = Math.floor(durationInSeconds / 3600);
+                const remainingMinutes = Math.round((durationInSeconds % 3600) / 60);
+                if (remainingMinutes === 0) {
+                    return ` durante ${hours}h`;
+                } else {
+                    return ` durante ${hours}h ${remainingMinutes}min`;
+                }
+            }
+        };
+        const duration = activityData.duration ? formatDuration(activityData.duration) : '';
 
         // Crear notificaciones para cada seguidor
         const followerIds = user.followers.map((follower: any) => follower._id.toString());
         
-        for (const followerId of followerIds) {
+        // Filtrar seguidores que tienen notificaciones de actividad habilitadas
+        const followersToNotify = user.followers.filter((follower: any) => {
+            if (!follower.notificationSettings) return true; // Por defecto habilitado
+            return follower.notificationSettings.activityUpdates !== false;
+        });
+        console.log(`Enviando notificaciones a ${followersToNotify.length} de ${user.followers.length} seguidores`);
+
+        // Crear notificaciones individuales para cada seguidor
+        const notificationPromises = followersToNotify.map(async (follower: any) => {
             const notificationData: CreateNotificationData = {
-                userId: followerId,
+                userId: follower._id.toString(),
                 type: 'activity_update',
-                title: 'Nueva actividad',
-                message: `${user.username} ha estado ${activityEmoji} ${distance}`,
+                title: '¡Nueva actividad!',
+                message: `${user.username} ha estado ${activityEmoji}${distance}${duration}`,
                 data: {
                     senderId: userId,
                     senderUsername: user.username,
-                    activityId: activityData._id?.toString() || '',
+                    activityId: activityData._id?.toString() || activityData.id || '',
                     activityType: activityData.type,
+                    activityName: activityData.name || `Actividad de ${activityEmoji}`,
                     distance: activityData.distance?.toString() || '',
-                    duration: activityData.duration?.toString() || ''
+                    duration: activityData.duration?.toString() || '',
+                    actionUrl: `/activity/${activityData._id || activityData.id}`
                 },
                 priority: 'normal'
             };
             
-            await createAndSendNotificationWithFCM(notificationData, socketIO, true);
-        }
+            return await createAndSendNotificationWithFCM(notificationData, socketIO, true);
+        });
+        await Promise.all(notificationPromises);
 
-        console.log(`Notificaciones de actividad enviadas a ${followerIds.length} seguidores`);
+        console.log(`Notificaciones de actividad enviadas a ${followersToNotify.length} seguidores`);
     } catch (error) {
         console.error('Error enviando notificaciones de actividad:', error);
     }

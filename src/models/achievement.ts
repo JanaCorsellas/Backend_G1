@@ -3,7 +3,8 @@ import mongoose, {ObjectId,Schema, model, Types} from "mongoose"
 export const achievementSchema = new Schema<IAchievement>({
     title: { 
         type: String, 
-        required: true
+        required: true,
+        unique: true  
     },
     description: { 
         type: String, 
@@ -51,6 +52,9 @@ export const achievementSchema = new Schema<IAchievement>({
         default: Date.now
     }
 });
+
+// ← ÍNDICE COMPUESTO para mayor seguridad
+achievementSchema.index({ title: 1, type: 1, targetValue: 1 }, { unique: true });
 
 export interface IAchievement {
     _id?: mongoose.Types.ObjectId;
